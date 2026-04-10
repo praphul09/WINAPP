@@ -1,0 +1,19 @@
+{
+  "name": "winapp",
+  "version": "0.1.0",
+  "description": "WINAPP order dashboard",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "create:test-batch": "electron scripts/create-test-batch.js",
+    "setup:book-generator-vendor": "powershell -ExecutionPolicy Bypass -File scripts/setup-book-generator-vendor.ps1"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-rebuild": "^3.2.9"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "jspdf": "^4.1.0"
+  }
+}

@@ -1,0 +1,5332 @@
+{
+  "10000107011": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB01",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000107011"
+  },
+  "10000148012": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC02",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000148012"
+  },
+  "10000103013": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX03",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000103013"
+  },
+  "10000114014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP04",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000114014"
+  },
+  "10000128015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT05",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000128015"
+  },
+  "10000144016": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB06",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000144016"
+  },
+  "10000127017": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC07",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000127017"
+  },
+  "10000140018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX08",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000140018"
+  },
+  "10000118021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP09",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000118021"
+  },
+  "10000106022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT10",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000106022"
+  },
+  "10000128023": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB11",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000128023"
+  },
+  "10000103024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC12",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000103024"
+  },
+  "10000131025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX13",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000131025"
+  },
+  "10000134026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP14",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000134026"
+  },
+  "10000114027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT15",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000114027"
+  },
+  "10000113028": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB16",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000113028"
+  },
+  "10000116031": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC17",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000116031"
+  },
+  "10000121032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX18",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000121032"
+  },
+  "10000131033": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP19",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000131033"
+  },
+  "10000132034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT20",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000132034"
+  },
+  "10000140035": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB21",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000140035"
+  },
+  "10000113036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC22",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000113036"
+  },
+  "10000102037": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX23",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000102037"
+  },
+  "10000129038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP24",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000129038"
+  },
+  "10000125041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT25",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000125041"
+  },
+  "10000147042": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB26",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000147042"
+  },
+  "10000130043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC27",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000130043"
+  },
+  "10000112044": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX28",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000112044"
+  },
+  "10000146045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP29",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000146045"
+  },
+  "10000119046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT30",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000119046"
+  },
+  "10000141047": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB31",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000141047"
+  },
+  "10000116048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC32",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000116048"
+  },
+  "10000116011": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX33",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000116011"
+  },
+  "10000146012": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP34",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000146012"
+  },
+  "10000109013": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT35",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000109013"
+  },
+  "10000111014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB36",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000111014"
+  },
+  "10000125015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC37",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000125015"
+  },
+  "10000132017": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP39",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000132017"
+  },
+  "10000134018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT40",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000134018"
+  },
+  "10000133021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB41",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000133021"
+  },
+  "10000134022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC42",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000134022"
+  },
+  "10000115023": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX43",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000115023"
+  },
+  "10000141024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP44",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000141024"
+  },
+  "10000128025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT45",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000128025"
+  },
+  "10000116026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB46",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000116026"
+  },
+  "10000140027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC47",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000140027"
+  },
+  "10000144028": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX48",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000144028"
+  },
+  "10000148031": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP49",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000148031"
+  },
+  "10000102032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT50",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000102032"
+  },
+  "10000144033": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB51",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000144033"
+  },
+  "10000127034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC52",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000127034"
+  },
+  "10000138035": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX53",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000138035"
+  },
+  "10000107036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP54",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000107036"
+  },
+  "10000118037": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT55",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000118037"
+  },
+  "10000134038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB56",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000134038"
+  },
+  "10000126041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC57",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000126041"
+  },
+  "10000123042": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX58",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000123042"
+  },
+  "10000119043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP59",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000119043"
+  },
+  "10000103044": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT60",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000103044"
+  },
+  "10000141045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB61",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000141045"
+  },
+  "10000117046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC62",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000117046"
+  },
+  "10000136047": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX63",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000136047"
+  },
+  "10000104048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP64",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000104048"
+  },
+  "10000147011": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT65",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000147011"
+  },
+  "10000106012": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB66",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000106012"
+  },
+  "10000130013": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC67",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000130013"
+  },
+  "10000108014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX68",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000108014"
+  },
+  "10000124015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP69",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000124015"
+  },
+  "10000101016": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT70",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000101016"
+  },
+  "10000104017": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB71",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000104017"
+  },
+  "10000111018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC72",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000111018"
+  },
+  "10000148021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX73",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000148021"
+  },
+  "10000110022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP74",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000110022"
+  },
+  "10000124023": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT75",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000124023"
+  },
+  "10000113024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB76",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000113024"
+  },
+  "10000127025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC77",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000127025"
+  },
+  "10000130026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX78",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000130026"
+  },
+  "10000137027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP79",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000137027"
+  },
+  "10000146028": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT80",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000146028"
+  },
+  "10000134031": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB81",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000134031"
+  },
+  "10000135032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC82",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000135032"
+  },
+  "10000145033": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX83",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000145033"
+  },
+  "10000118034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP84",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000118034"
+  },
+  "10000106035": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT85",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000106035"
+  },
+  "10000148036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB86",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000148036"
+  },
+  "10000121037": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC87",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000121037"
+  },
+  "10000124038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX88",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000124038"
+  },
+  "10000118041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP89",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000118041"
+  },
+  "10000108042": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT90",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000108042"
+  },
+  "10000116043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB91",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000116043"
+  },
+  "10000121044": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC92",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000121044"
+  },
+  "10000134045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX93",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000134045"
+  },
+  "10000125046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP94",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000125046"
+  },
+  "10000122047": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT95",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000122047"
+  },
+  "10000141048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB96",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000141048"
+  },
+  "10000130011": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC97",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000130011"
+  },
+  "10000118012": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX01",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000118012"
+  },
+  "10000137013": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP02",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000137013"
+  },
+  "10000102014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT03",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000102014"
+  },
+  "10000147015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB04",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000147015"
+  },
+  "10000145017": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX06",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000145017"
+  },
+  "10000121018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP07",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000121018"
+  },
+  "10000112021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT08",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000112021"
+  },
+  "10000116022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB09",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000116022"
+  },
+  "10000138023": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC10",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000138023"
+  },
+  "10000108024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX11",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000108024"
+  },
+  "10000121025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP12",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000121025"
+  },
+  "10000101026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT13",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000101026"
+  },
+  "10000107027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB14",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000107027"
+  },
+  "10000136028": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC15",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000136028"
+  },
+  "10000135031": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX16",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000135031"
+  },
+  "10000116032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP17",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000116032"
+  },
+  "10000138033": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT18",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000138033"
+  },
+  "10000130034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB19",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000130034"
+  },
+  "10000127035": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC20",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000127035"
+  },
+  "10000137036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX21",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000137036"
+  },
+  "10000101037": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP22",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000101037"
+  },
+  "10000123038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT23",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000123038"
+  },
+  "10000109041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB24",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000109041"
+  },
+  "10000103042": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC25",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000103042"
+  },
+  "10000101043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX26",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000101043"
+  },
+  "10000140044": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP27",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000140044"
+  },
+  "10000143045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT28",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000143045"
+  },
+  "10000148046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB29",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000148046"
+  },
+  "10000145047": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC30",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000145047"
+  },
+  "10000128048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX31",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000128048"
+  },
+  "10000110011": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP32",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000110011"
+  },
+  "10000102012": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT33",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000102012"
+  },
+  "10000105013": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB34",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000105013"
+  },
+  "10000107014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC35",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000107014"
+  },
+  "10000130015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX36",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000130015"
+  },
+  "10000143016": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP37",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000143016"
+  },
+  "10000116017": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT38",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000116017"
+  },
+  "10000126018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB39",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000126018"
+  },
+  "10000124021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC40",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000124021"
+  },
+  "10000125022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX41",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000125022"
+  },
+  "10000140023": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP42",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000140023"
+  },
+  "10000144024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT43",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000144024"
+  },
+  "10000146025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB44",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000146025"
+  },
+  "10000108026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC45",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000108026"
+  },
+  "10000127027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX46",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000127027"
+  },
+  "10000134028": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP47",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000134028"
+  },
+  "10000108032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB49",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000108032"
+  },
+  "10000101033": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC50",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000101033"
+  },
+  "10000142034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX51",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000142034"
+  },
+  "10000148035": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP52",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000148035"
+  },
+  "10000106036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT53",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000106036"
+  },
+  "10000114037": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB54",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000114037"
+  },
+  "10000119038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC55",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000119038"
+  },
+  "10000111041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX56",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000111041"
+  },
+  "10000148042": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP57",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000148042"
+  },
+  "10000125043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT58",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000125043"
+  },
+  "10000139044": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB59",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000139044"
+  },
+  "10000104045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC60",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000104045"
+  },
+  "10000123046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX61",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000123046"
+  },
+  "10000103047": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP62",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000103047"
+  },
+  "10000108011": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB64",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000108011"
+  },
+  "10000143013": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX66",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000143013"
+  },
+  "10000130014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP67",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000130014"
+  },
+  "10000122015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT68",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000122015"
+  },
+  "10000116016": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB69",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000116016"
+  },
+  "10000128017": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC70",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000128017"
+  },
+  "10000136018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX71",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000136018"
+  },
+  "10000111021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP72",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000111021"
+  },
+  "10000135022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT73",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000135022"
+  },
+  "10000142024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC75",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000142024"
+  },
+  "10000145026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP77",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000145026"
+  },
+  "10000144027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT78",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000144027"
+  },
+  "10000126028": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB79",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000126028"
+  },
+  "10000128031": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC80",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000128031"
+  },
+  "10000142032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX81",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000142032"
+  },
+  "10000104033": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP82",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000104033"
+  },
+  "10000136034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT83",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000136034"
+  },
+  "10000108037": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX86",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000108037"
+  },
+  "10000125038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP87",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000125038"
+  },
+  "10000121041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT88",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000121041"
+  },
+  "10000126042": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB89",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000126042"
+  },
+  "10000140043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC90",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000140043"
+  },
+  "10000117044": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX91",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000117044"
+  },
+  "10000135045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP92",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000135045"
+  },
+  "10000128046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT93",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000128046"
+  },
+  "10000110048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC95",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000110048"
+  },
+  "10000141011": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX96",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000141011"
+  },
+  "10000132012": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP97",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000132012"
+  },
+  "10000140014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB02",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000140014"
+  },
+  "10000120017": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP05",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000120017"
+  },
+  "10000148018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT06",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000148018"
+  },
+  "10000113021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB07",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000113021"
+  },
+  "10000148022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC08",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000148022"
+  },
+  "10000107023": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX09",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000107023"
+  },
+  "10000147026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB12",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000147026"
+  },
+  "10000101028": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX14",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000101028"
+  },
+  "10000146032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT16",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000146032"
+  },
+  "10000111033": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB17",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000111033"
+  },
+  "10000114034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC18",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000114034"
+  },
+  "10000117035": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX19",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000117035"
+  },
+  "10000103036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP20",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000103036"
+  },
+  "10000138037": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT21",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000138037"
+  },
+  "10000126038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB22",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000126038"
+  },
+  "10000128041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC23",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000128041"
+  },
+  "10000109042": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX24",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000109042"
+  },
+  "10000104043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP25",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000104043"
+  },
+  "10000145044": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT26",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000145044"
+  },
+  "10000138045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB27",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000138045"
+  },
+  "10000120046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC28",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000120046"
+  },
+  "10000113047": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX29",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000113047"
+  },
+  "10000108048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP30",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000108048"
+  },
+  "10000109011": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT31",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000109011"
+  },
+  "10000116012": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB32",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000116012"
+  },
+  "10000142013": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC33",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000142013"
+  },
+  "10000119014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX34",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000119014"
+  },
+  "10000101015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP35",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000101015"
+  },
+  "10000102016": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT36",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000102016"
+  },
+  "10000108017": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB37",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000108017"
+  },
+  "10000124018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC38",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000124018"
+  },
+  "10000144021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX39",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000144021"
+  },
+  "10000138022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP40",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000138022"
+  },
+  "10000134023": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT41",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000134023"
+  },
+  "10000107024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB42",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000107024"
+  },
+  "10000135025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC43",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000135025"
+  },
+  "10000126026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX44",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000126026"
+  },
+  "10000128028": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT46",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000128028"
+  },
+  "10000118031": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB47",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000118031"
+  },
+  "10000138032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC48",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000138032"
+  },
+  "10000109034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP50",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000109034"
+  },
+  "10000108035": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT51",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000108035"
+  },
+  "10000141036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB52",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000141036"
+  },
+  "10000122037": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC53",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000122037"
+  },
+  "10000128038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX54",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000128038"
+  },
+  "10000104041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP55",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000104041"
+  },
+  "10000123043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB57",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000123043"
+  },
+  "10000118044": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC58",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000118044"
+  },
+  "10000132045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX59",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000132045"
+  },
+  "10000129046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP60",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000129046"
+  },
+  "10000143047": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT61",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000143047"
+  },
+  "10000146048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB62",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000146048"
+  },
+  "10000147012": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX64",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000147012"
+  },
+  "10000120013": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP65",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000120013"
+  },
+  "10000103014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT66",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000103014"
+  },
+  "10000119015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB67",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000119015"
+  },
+  "10000118016": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC68",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000118016"
+  },
+  "10000133018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP70",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000133018"
+  },
+  "10000115021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT71",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000115021"
+  },
+  "10000131022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB72",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000131022"
+  },
+  "10000147024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX74",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000147024"
+  },
+  "10000110025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP75",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000110025"
+  },
+  "10000142026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT76",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000142026"
+  },
+  "10000108027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB77",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000108027"
+  },
+  "10000133028": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC78",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000133028"
+  },
+  "10000141032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP80",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000141032"
+  },
+  "10000124033": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT81",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000124033"
+  },
+  "10000104034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB82",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000104034"
+  },
+  "10000115035": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC83",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000115035"
+  },
+  "10000123036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX84",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000123036"
+  },
+  "10000103037": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP85",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000103037"
+  },
+  "10000116038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT86",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000116038"
+  },
+  "10000141042": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC88",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000141042"
+  },
+  "10000129043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX89",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000129043"
+  },
+  "10000125044": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP90",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000125044"
+  },
+  "10000108045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT91",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000108045"
+  },
+  "10000132047": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC93",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000132047"
+  },
+  "10000119048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX94",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000119048"
+  },
+  "10000139013": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB97",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000139013"
+  },
+  "10000138014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC01",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000138014"
+  },
+  "10000143015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX02",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000143015"
+  },
+  "10000124016": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP03",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000124016"
+  },
+  "10000119017": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT04",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000119017"
+  },
+  "10000122018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB05",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000122018"
+  },
+  "10000143021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC06",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000143021"
+  },
+  "10000112022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX07",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000112022"
+  },
+  "10000103023": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP08",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000103023"
+  },
+  "10000120024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT09",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000120024"
+  },
+  "10000113025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB10",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000113025"
+  },
+  "10000139026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC11",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000139026"
+  },
+  "10000104027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX12",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000104027"
+  },
+  "10000124028": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP13",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000124028"
+  },
+  "10000131031": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT14",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000131031"
+  },
+  "10000110032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB15",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000110032"
+  },
+  "10000126033": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC16",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000126033"
+  },
+  "10000137034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX17",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000137034"
+  },
+  "10000142035": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP18",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000142035"
+  },
+  "10000139036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT19",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000139036"
+  },
+  "10000110041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX22",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000110041"
+  },
+  "10000114042": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP23",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000114042"
+  },
+  "10000103043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT24",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000103043"
+  },
+  "10000148045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC26",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000148045"
+  },
+  "10000131046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX27",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000131046"
+  },
+  "10000133047": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP28",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000133047"
+  },
+  "10000111048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT29",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000111048"
+  },
+  "10000124012": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC31",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000124012"
+  },
+  "10000148013": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX32",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000148013"
+  },
+  "10000137014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP33",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000137014"
+  },
+  "10000138015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT34",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000138015"
+  },
+  "10000106016": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB35",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000106016"
+  },
+  "10000139017": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC36",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000139017"
+  },
+  "10000112018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX37",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000112018"
+  },
+  "10000104021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP38",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000104021"
+  },
+  "10000126022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT39",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000126022"
+  },
+  "10000118023": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB40",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000118023"
+  },
+  "10000121024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC41",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000121024"
+  },
+  "10000139025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX42",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000139025"
+  },
+  "10000131026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP43",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000131026"
+  },
+  "10000134027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT44",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000134027"
+  },
+  "10000127028": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB45",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000127028"
+  },
+  "10000120031": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC46",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000120031"
+  },
+  "10000103032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX47",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000103032"
+  },
+  "10000130033": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP48",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000130033"
+  },
+  "10000108034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT49",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000108034"
+  },
+  "10000104036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC51",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000104036"
+  },
+  "10000113037": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX52",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000113037"
+  },
+  "10000142038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP53",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000142038"
+  },
+  "10000143041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT54",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000143041"
+  },
+  "10000118042": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB55",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000118042"
+  },
+  "10000106043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC56",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000106043"
+  },
+  "10000130044": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX57",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000130044"
+  },
+  "10000123045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP58",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000123045"
+  },
+  "10000108046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT59",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000108046"
+  },
+  "10000138047": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB60",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000138047"
+  },
+  "10000134048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC61",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000134048"
+  },
+  "10000140011": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX62",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000140011"
+  },
+  "10000139012": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP63",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000139012"
+  },
+  "10000114013": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT64",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000114013"
+  },
+  "10000118014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB65",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000118014"
+  },
+  "10000141016": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX67",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000141016"
+  },
+  "10000103018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT69",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000103018"
+  },
+  "10000135021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB70",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000135021"
+  },
+  "10000132022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC71",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000132022"
+  },
+  "10000110023": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX72",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000110023"
+  },
+  "10000125024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP73",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000125024"
+  },
+  "10000142025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT74",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000142025"
+  },
+  "10000123026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB75",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000123026"
+  },
+  "10000105027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC76",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000105027"
+  },
+  "10000144031": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP78",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000144031"
+  },
+  "10000114032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT79",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000114032"
+  },
+  "10000106034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC81",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000106034"
+  },
+  "10000146036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP83",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000146036"
+  },
+  "10000112037": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT84",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000112037"
+  },
+  "10000108038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB85",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000108038"
+  },
+  "10000124041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC86",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000124041"
+  },
+  "10000110042": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX87",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000110042"
+  },
+  "10000135043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP88",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000135043"
+  },
+  "10000137044": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT89",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000137044"
+  },
+  "10000112045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB90",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000112045"
+  },
+  "10000111046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC91",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000111046"
+  },
+  "10000123047": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX92",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000123047"
+  },
+  "10000114048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP93",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000114048"
+  },
+  "10000125011": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT94",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000125011"
+  },
+  "10000115012": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB95",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000115012"
+  },
+  "10000137015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP01",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000137015"
+  },
+  "10000104018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC04",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000104018"
+  },
+  "10000139021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX05",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000139021"
+  },
+  "10000123022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP06",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000123022"
+  },
+  "10000136023": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT07",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000136023"
+  },
+  "10000104024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB08",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000104024"
+  },
+  "10000133025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC09",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000133025"
+  },
+  "10000112026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX10",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000112026"
+  },
+  "10000124027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP11",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000124027"
+  },
+  "10000115028": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT12",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000115028"
+  },
+  "10000107032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC14",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000107032"
+  },
+  "10000114033": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX15",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000114033"
+  },
+  "10000141035": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT17",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000141035"
+  },
+  "10000142036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB18",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000142036"
+  },
+  "10000135037": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC19",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000135037"
+  },
+  "10000133041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP21",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000133041"
+  },
+  "10000141043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB23",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000141043"
+  },
+  "10000136045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX25",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000136045"
+  },
+  "10000140046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP26",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000140046"
+  },
+  "10000139047": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT27",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000139047"
+  },
+  "10000112048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB28",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000112048"
+  },
+  "10000120011": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC29",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000120011"
+  },
+  "10000123014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT32",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000123014"
+  },
+  "10000129015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB33",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000129015"
+  },
+  "10000122016": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC34",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000122016"
+  },
+  "10000148017": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX35",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000148017"
+  },
+  "10000128018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP36",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000128018"
+  },
+  "10000126021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT37",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000126021"
+  },
+  "10000118022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB38",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000118022"
+  },
+  "10000139023": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC39",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000139023"
+  },
+  "10000130025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP41",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000130025"
+  },
+  "10000135027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB43",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000135027"
+  },
+  "10000104031": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX45",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000104031"
+  },
+  "10000145032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP46",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000145032"
+  },
+  "10000102033": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT47",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000102033"
+  },
+  "10000147034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB48",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000147034"
+  },
+  "10000120036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX50",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000120036"
+  },
+  "10000113038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT52",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000113038"
+  },
+  "10000105041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB53",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000105041"
+  },
+  "10000124043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX55",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000124043"
+  },
+  "10000119044": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP56",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000119044"
+  },
+  "10000103045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT57",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000103045"
+  },
+  "10000121046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB58",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000121046"
+  },
+  "10000113048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX60",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000113048"
+  },
+  "10000111011": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP61",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000111011"
+  },
+  "10000122013": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB63",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000122013"
+  },
+  "10000145014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC64",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000145014"
+  },
+  "10000131015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX65",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000131015"
+  },
+  "10000138017": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT67",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000138017"
+  },
+  "10000132018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB68",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000132018"
+  },
+  "10000114021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC69",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000114021"
+  },
+  "10000109022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX70",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000109022"
+  },
+  "10000108023": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP71",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000108023"
+  },
+  "10000133024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT72",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000133024"
+  },
+  "10000125025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB73",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000125025"
+  },
+  "10000145027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX75",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000145027"
+  },
+  "10000117031": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT77",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000117031"
+  },
+  "10000140032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB78",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000140032"
+  },
+  "10000126034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX80",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000126034"
+  },
+  "10000131035": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP81",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000131035"
+  },
+  "10000145036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT82",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000145036"
+  },
+  "10000124037": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB83",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000124037"
+  },
+  "10000105038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC84",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000105038"
+  },
+  "10000136042": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP86",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000136042"
+  },
+  "10000115043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT87",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000115043"
+  },
+  "10000138044": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB88",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000138044"
+  },
+  "10000122045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC89",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000122045"
+  },
+  "10000143046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX90",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000143046"
+  },
+  "10000126047": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP91",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000126047"
+  },
+  "10000129048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT92",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000129048"
+  },
+  "10000123013": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX95",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000123013"
+  },
+  "10000127014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP96",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000127014"
+  },
+  "10000134015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT97",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000134015"
+  },
+  "10000120016": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB01",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000120016"
+  },
+  "10000137017": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC02",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000137017"
+  },
+  "10000107018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX03",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000107018"
+  },
+  "10000143024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC07",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000143024"
+  },
+  "10000140025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX08",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000140025"
+  },
+  "10000127026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP09",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000127026"
+  },
+  "10000121027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT10",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000121027"
+  },
+  "10000109028": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB11",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000109028"
+  },
+  "10000131032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX13",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000131032"
+  },
+  "10000134034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT15",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000134034"
+  },
+  "10000123035": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB16",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000123035"
+  },
+  "10000143036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC17",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000143036"
+  },
+  "10000105037": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX18",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000105037"
+  },
+  "10000144038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP19",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000144038"
+  },
+  "10000138041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT20",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000138041"
+  },
+  "10000113042": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB21",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000113042"
+  },
+  "10000144043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC22",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000144043"
+  },
+  "10000115044": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX23",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000115044"
+  },
+  "10000106045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP24",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000106045"
+  },
+  "10000122046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT25",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000122046"
+  },
+  "10000107047": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB26",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000107047"
+  },
+  "10000117011": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX28",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000117011"
+  },
+  "10000107012": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP29",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000107012"
+  },
+  "10000110014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB31",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000110014"
+  },
+  "10000126015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC32",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000126015"
+  },
+  "10000113016": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX33",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000113016"
+  },
+  "10000118017": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP34",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000118017"
+  },
+  "10000130021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB36",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000130021"
+  },
+  "10000112023": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX38",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000112023"
+  },
+  "10000126024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP39",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000126024"
+  },
+  "10000106025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT40",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000106025"
+  },
+  "10000119026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB41",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000119026"
+  },
+  "10000147031": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP44",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000147031"
+  },
+  "10000130032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT45",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000130032"
+  },
+  "10000132033": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB46",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000132033"
+  },
+  "10000117034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC47",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000117034"
+  },
+  "10000124036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP49",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000124036"
+  },
+  "10000107037": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT50",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000107037"
+  },
+  "10000143038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB51",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000143038"
+  },
+  "10000119041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC52",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000119041"
+  },
+  "10000116042": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX53",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000116042"
+  },
+  "10000136044": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT55",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000136044"
+  },
+  "10000141046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC57",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000141046"
+  },
+  "10000124011": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT60",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000124011"
+  },
+  "10000134012": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB61",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000134012"
+  },
+  "10000141014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX63",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000141014"
+  },
+  "10000144015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP64",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000144015"
+  },
+  "10000130016": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT65",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000130016"
+  },
+  "10000146018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC67",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000146018"
+  },
+  "10000147021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX68",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000147021"
+  },
+  "10000108022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP69",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000108022"
+  },
+  "10000145024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB71",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000145024"
+  },
+  "10000137026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX73",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000137026"
+  },
+  "10000110027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP74",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000110027"
+  },
+  "10000132028": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT75",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000132028"
+  },
+  "10000106031": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB76",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000106031"
+  },
+  "10000124032": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC77",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000124032"
+  },
+  "10000122034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP79",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000122034"
+  },
+  "10000116035": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT80",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000116035"
+  },
+  "10000128036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB81",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000128036"
+  },
+  "10000130041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP84",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000130041"
+  },
+  "10000142042": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT85",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000142042"
+  },
+  "10000120043": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB86",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000120043"
+  },
+  "10000121045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX88",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000121045"
+  },
+  "10000107046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP89",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000107046"
+  },
+  "10000117047": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT90",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000117047"
+  },
+  "10000127048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB91",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000127048"
+  },
+  "10000101011": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC92",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000101011"
+  },
+  "10000104012": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX93",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000104012"
+  },
+  "10000141013": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP94",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000141013"
+  },
+  "10000126014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT95",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000126014"
+  },
+  "10000102015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB96",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000102015"
+  },
+  "10000132016": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC97",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000132016"
+  },
+  "10000135017": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX01",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000135017"
+  },
+  "10000117021": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT03",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000117021"
+  },
+  "10000136022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB04",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000136022"
+  },
+  "10000129023": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC05",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000129023"
+  },
+  "10000118025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP07",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000118025"
+  },
+  "10000125027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB09",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000125027"
+  },
+  "10000121028": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC10",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000121028"
+  },
+  "10000105033": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT13",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000105033"
+  },
+  "10000139035": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC15",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000139035"
+  },
+  "10000115036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX16",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000115036"
+  },
+  "10000107038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT18",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000107038"
+  },
+  "10000148041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB19",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000148041"
+  },
+  "10000144044": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP22",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000144044"
+  },
+  "10000111045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "QT23",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000111045"
+  },
+  "10000109046": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB24",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000109046"
+  },
+  "10000115048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX26",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000115048"
+  },
+  "10000106011": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP27",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000106011"
+  },
+  "10000108012": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT28",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000108012"
+  },
+  "10000115014": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC30",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000115014"
+  },
+  "10000142015": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX31",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000142015"
+  },
+  "10000148016": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP32",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000148016"
+  },
+  "10000131017": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT33",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000131017"
+  },
+  "10000127018": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB34",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000127018"
+  },
+  "10000121022": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX36",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000121022"
+  },
+  "10000144023": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP37",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000144023"
+  },
+  "10000131024": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT38",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000131024"
+  },
+  "10000122025": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AB39",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000122025"
+  },
+  "10000125026": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC40",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000125026"
+  },
+  "10000142027": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX41",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000142027"
+  },
+  "10000116028": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP42",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "SMALL",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000116028"
+  },
+  "10000115034": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "NX46",
+    "PER": "N",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000115034"
+  },
+  "10000126035": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "SP47",
+    "PER": "Y",
+    "TYPE": "12",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000126035"
+  },
+  "10000125036": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT48",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000125036"
+  },
+  "10000116037": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AB49",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000116037"
+  },
+  "10000101038": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "AC50",
+    "PER": "Y",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000101038"
+  },
+  "10000112041": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "NX51",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000112041"
+  },
+  "10000137045": {
+    "OLD SPINE": "-",
+    "REV": "R1",
+    "NEW SPINE COVER": "AC55",
+    "PER": "Y",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "Y",
+    "INNERCODE": "10000137045"
+  },
+  "10000111047": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "SP57",
+    "PER": "N",
+    "TYPE": "11",
+    "BOOK SIZE": "MEDIUM",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000111047"
+  },
+  "10000138048": {
+    "OLD SPINE": "-",
+    "REV": "",
+    "NEW SPINE COVER": "QT58",
+    "PER": "N",
+    "TYPE": "22",
+    "BOOK SIZE": "BIG",
+    "REAL_TIME_PRINT": "N",
+    "INNERCODE": "10000138048"
+  }
+}

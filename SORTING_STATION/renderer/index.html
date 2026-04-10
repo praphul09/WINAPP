@@ -1,0 +1,112 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SORTING STATION</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>SORTING STATION</h1>
+        <p>2 independent stations | 12 buckets x 12 baskets | slot validation via QR + Arduino</p>
+      </div>
+      <div class="top-actions">
+        <button id="toggleStation1" class="secondary">Hide Station 1</button>
+        <button id="toggleStation2" class="secondary">Hide Station 2</button>
+        <button id="refreshBatches">Refresh Batches</button>
+        <button id="refreshPorts">Refresh Ports</button>
+      </div>
+    </header>
+
+    <main id="stationsRoot" class="stations-root"></main>
+
+    <template id="stationTemplate">
+      <section class="station-card">
+        <div class="station-header">
+          <div>
+            <h2 class="station-title"></h2>
+            <p class="station-status">Status: Idle</p>
+          </div>
+          <button class="station-hide-btn secondary" type="button">Hide Station</button>
+        </div>
+
+        <div class="controls-grid">
+          <label>
+            Active Batch (processing)
+            <select class="batch-select"></select>
+          </label>
+
+          <label>
+            Scanner Mode
+            <select class="scanner-mode">
+              <option value="keyboard">Keyboard Scanner</option>
+              <option value="serial">Serial Scanner</option>
+            </select>
+          </label>
+
+          <label>
+            Arduino COM
+            <select class="arduino-port"></select>
+          </label>
+
+          <label>
+            Scanner COM
+            <select class="scanner-port"></select>
+          </label>
+
+          <div class="button-row">
+            <button class="arduino-connect">Connect Arduino</button>
+            <button class="arduino-disconnect secondary">Disconnect</button>
+            <button class="arduino-sync secondary">Sync Arduino ID (next msg)</button>
+          </div>
+
+          <div class="button-row">
+            <button class="scanner-connect">Connect Scanner</button>
+            <button class="scanner-disconnect secondary">Disconnect</button>
+            <button class="scanner-sync secondary">Sync Scanner (next scan)</button>
+          </div>
+        </div>
+
+        <div class="selection-section">
+          <div>
+            <h3>Bucket (Colour 1)</h3>
+            <div class="grid12 bucket-grid"></div>
+          </div>
+          <div>
+            <h3>Basket (Colour 2)</h3>
+            <div class="grid12 basket-grid"></div>
+          </div>
+        </div>
+
+        <div class="scan-section">
+          <label>
+            QR Scan Input
+            <input class="scan-input" placeholder="Scan QR and press Enter" />
+          </label>
+          <label>
+            Current Slot (Arduino)
+            <input class="slot-input" type="number" min="1" max="12" placeholder="Auto from Arduino" />
+          </label>
+          <button class="validate-btn">Validate Scan</button>
+        </div>
+
+        <div class="meta-row">
+          <div>Arduino: <span class="arduino-meta">-</span></div>
+          <div>Scanner: <span class="scanner-meta">-</span></div>
+          <div>Last scan: <span class="last-scan">-</span></div>
+        </div>
+
+        <div>
+          <h3>Final 12 Slots Progress (sorted/total)</h3>
+          <div class="grid12 slot-grid"></div>
+        </div>
+
+        <div class="log-box"></div>
+      </section>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

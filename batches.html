@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WINAPP Batches</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-logo" src="assets/logo.png" alt="WINAPP logo" />
+          <div>
+            <p class="brand-title">WINAPP</p>
+            <p class="brand-subtitle">Batches dashboard</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost-button" id="refresh-batches">Refresh all batches</button>
+          <div class="status-pill" id="batches-refresh">Waiting for data</div>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="hero">
+          <h1>Batch status</h1>
+          <p>Monitor active batches and recently completed batches.</p>
+        </section>
+
+        <section class="panel-card">
+          <div class="panel-header">
+            <h2>Create batch</h2>
+            <span class="panel-meta">Unique name + today&apos;s date</span>
+          </div>
+          <form class="form-row" id="create-batch-form">
+            <input
+              class="text-input"
+              type="text"
+              id="batch-name"
+              name="batch-name"
+              placeholder="Batch name"
+              autocomplete="off"
+              required
+            />
+            <button class="primary-button" type="submit">Create batch</button>
+          </form>
+          <p class="helper-text" id="batch-helper">
+            Batch files are created in \\pixartnas\home\INTERNAL_PROCESSING\BATCHES.
+          </p>
+          <p class="status-text" id="batch-status"></p>
+        </section>
+
+        <section class="tabs" id="batch-tabs"></section>
+
+        <section class="table-card">
+          <div class="table-header">
+            <h2 id="batch-table-title">All batches</h2>
+            <span class="panel-meta" id="batch-count">0 total</span>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Batch name</th>
+                  <th>Created date</th>
+                  <th>Status</th>
+                  <th>Active</th>
+                  <th>Path</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="batches-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="batches.js"></script>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+node_modules/
+SORTING_STATION/node_modules/
+book_generator/vendor/
+book_generator/__pycache__/
+*.pyc
+

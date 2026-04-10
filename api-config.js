@@ -1,0 +1,17 @@
+export const API_ENDPOINTS = {
+  //orders: "http://localhost:8000/api/order-details/claim",
+  orders: "https://eshiksavikas.in/api/order-details/claim",
+  statusChange: "https://eshiksavikas.in/api/order-details/status",
+  sendForApproval: "https://eshiksavikas.in/api/product-details/direct-pending-approval",
+  orderForapprovals : "https://eshiksavikas.in/api/order-approvals/secret",
+  directApprove: "https://eshiksavikas.in/api/product-details/direct-approve",
+  dirctApprove: "https://eshiksavikas.in/api/product-details/direct-approve",
+  sendToProcess: "https://eshiksavikas.in/api/order-details/send-to-process",
+  provideInvoice: "https://eshiksavikas.in/api/order-details/provide-invoice",
+  showDetails: "https://eshiksavikas.in/api/order-details/details-by-order",
+  submitStudentDetails: "https://eshiksavikas.in/api/order-details/update-student",
+  studentDetailsByOrders: "https://eshiksavikas.in/api/order-details/details-by-multiple-orders",
+  prepareBatch: "https://eshiksavikas.in/api/order-details/prepare-order",
+  resyncOrder: "https://eshiksavikas.in/api/product-details/resync-order",
+  resyncAfterApproval: "https://eshiksavikas.in/api/product-details/resync-after-approval",
+};
