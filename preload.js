@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld("appBridge", {
   listBatchOrders: (batchId) => ipcRenderer.invoke("list-batch-orders", batchId),
   listBatchPreparedProductDetails: (payload) =>
     ipcRenderer.invoke("list-batch-prepared-product-details", payload),
+  listBatchDetailedInfo: (payload) => ipcRenderer.invoke("list-batch-detailed-info", payload),
   listOrderBatchLinks: () => ipcRenderer.invoke("list-order-batch-links"),
   addOrderToBatch: (payload) => ipcRenderer.invoke("add-order-to-batch", payload),
   removeOrderFromBatch: (payload) => ipcRenderer.invoke("remove-order-from-batch", payload),
@@ -21,6 +22,7 @@ contextBridge.exposeInMainWorld("appBridge", {
     ipcRenderer.invoke("move-product-detail-to-print-later", payload),
   constructBookDetails: (payload) => ipcRenderer.invoke("construct-book-details", payload),
   generateBooks: (payload) => ipcRenderer.invoke("generate-books", payload),
+  openBatchProcessingFolder: (payload) => ipcRenderer.invoke("open-batch-processing-folder", payload),
   regenerateBooks: (payload) => ipcRenderer.invoke("regenerate-books", payload),
   setBatchProcessing: (payload) => ipcRenderer.invoke("set-batch-processing", payload),
   setBatchActive: (payload) => ipcRenderer.invoke("set-batch-active", payload),

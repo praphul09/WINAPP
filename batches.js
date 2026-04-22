@@ -26,6 +26,9 @@ let productDetailsBackdrop = null;
 let productDetailsTitle = null;
 let productDetailsBody = null;
 let activeProductDetailsBatch = null;
+let detailedInfoBackdrop = null;
+let detailedInfoTitle = null;
+let detailedInfoBody = null;
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -262,6 +265,147 @@ const renderPreparedProductDetailsModal = (batch, rows) => {
   productDetailsBackdrop.classList.remove("hidden");
 };
 
+const ensureDetailedInfoModal = () => {
+  if (detailedInfoBackdrop) return;
+
+  detailedInfoBackdrop = document.createElement("div");
+  detailedInfoBackdrop.className = "modal-backdrop hidden";
+  detailedInfoBackdrop.innerHTML = `
+    <div class="modal" style="max-width: 1200px; width: min(1200px, 94vw);">
+      <div class="modal-header">
+        <h3 id="detailed-info-title">Detailed batch info</h3>
+        <button class="ghost-button" id="detailed-info-close" type="button">Close</button>
+      </div>
+      <div class="modal-body" id="detailed-info-body"></div>
+    </div>
+  `;
+
+  document.body.appendChild(detailedInfoBackdrop);
+  detailedInfoTitle = document.getElementById("detailed-info-title");
+  detailedInfoBody = document.getElementById("detailed-info-body");
+  const closeButton = document.getElementById("detailed-info-close");
+
+  const closeModal = () => {
+    detailedInfoBackdrop.classList.add("hidden");
+  };
+
+  closeButton?.addEventListener("click", closeModal);
+  detailedInfoBackdrop.addEventListener("click", (event) => {
+    if (event.target === detailedInfoBackdrop) {
+      closeModal();
+    }
+  });
+};
+
+const renderDetailedInfoTable = (headers, rows) => {
+  if (!rows.length) {
+    return `<p class="helper-text">No records found.</p>`;
+  }
+
+  return `
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>${headers.map((header) => `<th>${header}</th>`).join("")}</tr>
+        </thead>
+        <tbody>
+          ${rows
+            .map(
+              (row) => `
+                <tr>${row.map((cell) => `<td>${cell ?? "-"}</td>`).join("")}</tr>
+              `
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+};
+
+const renderDetailedBatchInfoModal = (batch, payload) => {
+  ensureDetailedInfoModal();
+  detailedInfoTitle.textContent = `Detailed batch info - ${batch.batchName}`;
+  const schools = Array.isArray(payload?.schools) ? payload.schools : [];
+  const totals = payload?.totals || {};
+
+  if (!schools.length) {
+    detailedInfoBody.innerHTML = `<p class="helper-text">No prepared data found for this batch yet.</p>`;
+    detailedInfoBackdrop.classList.remove("hidden");
+    return;
+  }
+
+  detailedInfoBody.innerHTML = `
+    <section class="table-card" style="margin-bottom: 16px;">
+      <div class="table-header">
+        <h3>Summary</h3>
+        <span class="panel-meta">Status: ${payload?.status || "-"}</span>
+      </div>
+      <p class="helper-text">
+        Schools: ${totals.school_count || 0},
+        Product details: ${totals.product_detail_count || 0},
+        Personalized students: ${totals.personalized_student_count || 0},
+        Nonp quantity: ${totals.nonp_quantity_count || 0}
+      </p>
+    </section>
+    ${schools
+      .map((school) => {
+        const schoolLabel = school.school_name || school.school_id || "-";
+        const schoolId = school.school_id || "-";
+
+        const productRows = (Array.isArray(school.product_details_by_class) ? school.product_details_by_class : [])
+          .flatMap((classGroup) =>
+            (Array.isArray(classGroup.products) ? classGroup.products : []).map((product) => [
+              classGroup.class_name || classGroup.class_id || "-",
+              product.name || "-",
+              product.covercode || "-",
+              product.innercode || "-",
+            ])
+          );
+
+        const studentRows = (Array.isArray(school.personalized_students_by_class)
+          ? school.personalized_students_by_class
+          : []
+        ).flatMap((classGroup) =>
+          (Array.isArray(classGroup.students) ? classGroup.students : []).map((student) => [
+            classGroup.class_name || classGroup.class_id || "-",
+            student.student_id || "-",
+            student.student_name || "-",
+            student.order_details_id || "-",
+            student.assigned_number ?? "-",
+          ])
+        );
+
+        const nonpRows = (Array.isArray(school.nonp_quantity_by_class) ? school.nonp_quantity_by_class : []).map(
+          (row) => [row.class_name || row.class_id || "-", row.quantity ?? 0]
+        );
+
+        return `
+          <section class="table-card" style="margin-bottom: 16px;">
+            <div class="table-header">
+              <h3>${schoolLabel}</h3>
+              <span class="panel-meta">School ID: ${schoolId}</span>
+            </div>
+
+            <h4 style="margin: 0 0 8px 0;">Product details class wise</h4>
+            ${renderDetailedInfoTable(["Class", "Product", "Covercode", "Innercode"], productRows)}
+
+            <h4 style="margin: 16px 0 8px 0;">Personalized students class wise</h4>
+            ${renderDetailedInfoTable(
+              ["Class", "Student ID", "Student name", "Order detail ID", "Assigned #"],
+              studentRows
+            )}
+
+            <h4 style="margin: 16px 0 8px 0;">Nonp quantity by class</h4>
+            ${renderDetailedInfoTable(["Class", "Quantity"], nonpRows)}
+          </section>
+        `;
+      })
+      .join("")}
+  `;
+
+  detailedInfoBackdrop.classList.remove("hidden");
+};
+
 const getPreparedStudents = (data) => {
   if (Array.isArray(data?.students)) return data.students;
   if (Array.isArray(data?.data?.students)) return data.data.students;
@@ -271,6 +415,12 @@ const getPreparedStudents = (data) => {
 const getPreparedProducts = (data) => {
   if (Array.isArray(data?.products)) return data.products;
   if (Array.isArray(data?.data?.products)) return data.data.products;
+  return [];
+};
+
+const getPreparedClasses = (data) => {
+  if (Array.isArray(data?.classes)) return data.classes;
+  if (Array.isArray(data?.data?.classes)) return data.data.classes;
   return [];
 };
 
@@ -449,6 +599,7 @@ const handlePrepareBatch = async (batch) => {
   const finalizeResult = await window.appBridge?.finalizeBatchPreparation?.({
     batchId: batch.id,
     students: getPreparedStudents(prepareResult.data),
+    classes: getPreparedClasses(prepareResult.data),
     products: getPreparedProducts(prepareResult.data),
     productDetails: getPreparedProductDetails(prepareResult.data),
     nonpOrders: getPreparedNonpOrders(prepareResult.data),
@@ -506,6 +657,7 @@ const handleFetchAgain = async (batch) => {
   const refetchResult = await window.appBridge?.refetchAndPrepareBatch?.({
     batchId: batch.id,
     students: getPreparedStudents(prepareResult.data),
+    classes: getPreparedClasses(prepareResult.data),
     products: getPreparedProducts(prepareResult.data),
     productDetails: getPreparedProductDetails(prepareResult.data),
     nonpOrders: getPreparedNonpOrders(prepareResult.data),
@@ -558,6 +710,20 @@ const handleGenerateBooks = async (batch) => {
     "success"
   );
   await refreshAllBatches();
+};
+
+const handleOpenBatchProcessingFolder = async (batch) => {
+  setStatus("Opening batch folder in File Explorer...", "neutral");
+  const result = await window.appBridge?.openBatchProcessingFolder?.({
+    batchId: batch.id,
+  });
+
+  if (!result?.ok) {
+    setStatus(result?.message || "Unable to open batch processing folder.", "error");
+    return;
+  }
+
+  setStatus("Batch folder opened in File Explorer.", "success");
 };
 
 const handleRegenerateBooks = async (batch) => {
@@ -637,6 +803,21 @@ const handleViewPreparedProductDetails = async (batch) => {
   );
   renderPreparedProductDetailsModal(batch, rows);
   setStatus("Prepared product details loaded.", "success");
+};
+
+const handleViewDetailedBatchInfo = async (batch) => {
+  setStatus("Loading detailed batch info...", "neutral");
+  const result = await window.appBridge?.listBatchDetailedInfo?.({
+    batchId: batch.id,
+  });
+
+  if (!result?.ok) {
+    setStatus(result?.message || "Unable to load detailed batch info.", "error");
+    return;
+  }
+
+  renderDetailedBatchInfoModal(batch, result.data || {});
+  setStatus("Detailed batch info loaded.", "success");
 };
 
 const handleMarkBatchComplete = async (batch) => {
@@ -761,6 +942,20 @@ const renderTable = (rows, emptyMessage) => {
         className: "ghost-button",
         onClick: async () => {
           await toggleBatchOrders(batch.id);
+        },
+      },
+      {
+        label: "Open in File Explorer",
+        className: "ghost-button",
+        onClick: async () => {
+          await handleOpenBatchProcessingFolder(batch);
+        },
+      },
+      {
+        label: "View Detailed Batch Info",
+        className: "ghost-button",
+        onClick: async () => {
+          await handleViewDetailedBatchInfo(batch);
         },
       },
     ];

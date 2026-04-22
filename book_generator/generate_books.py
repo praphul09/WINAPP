@@ -30,7 +30,10 @@ QR_SIZE = 25 * MM_TO_PT
 QR_LEFT_OF_MIDDLE = 8 * MM_TO_PT
 QR_BOTTOM_MARGIN = 17 * MM_TO_PT
 QR_BOTTOM_MARGIN_NEW = 12 * MM_TO_PT
+SLOT_LABEL_GAP = 4 * MM_TO_PT
+SLOT_LABEL_FONT_SIZE = 10
 BOOK_ID_FONT_SIZE = 18
+SPINE_BATCH_ID_FONT_SIZE = 18
 BOOK_ID_X_MARGIN = 24
 BOOK_ID_Y_MARGIN = 32
 STRIPE_WIDTH = 5 * MM_TO_PT
@@ -178,6 +181,43 @@ def draw_cover_qr(c: canvas.Canvas, page_width: float, page_height : float, qr_v
     c.drawImage(qr_image, qr_x, qr_y, width=QR_SIZE, height=QR_SIZE, preserveAspectRatio=True, mask="auto")
 
 
+def assigned_number_to_slot(assigned_number) -> int | None:
+    try:
+        value = int(str(assigned_number or "").strip())
+    except (TypeError, ValueError):
+        return None
+
+    if value <= 0:
+        return None
+
+    return ((value - 1) % 12) + 1
+
+
+def draw_cover_slot_label(
+    c: canvas.Canvas,
+    page_width: float,
+    page_height: float,
+    assigned_number,
+) -> None:
+    slot = assigned_number_to_slot(assigned_number)
+    if slot is None:
+        return
+
+    qr_x = max((page_width / 2) - QR_LEFT_OF_MIDDLE - QR_SIZE, 0)
+    if page_height > 291 * MM_TO_PT:
+        qr_y = QR_BOTTOM_MARGIN
+    else:
+        qr_y = QR_BOTTOM_MARGIN_NEW
+
+    text_x = qr_x + (QR_SIZE / 2)
+    text_y = max(qr_y - SLOT_LABEL_GAP, 0)
+
+    c.saveState()
+    c.setFont("Helvetica-Bold", SLOT_LABEL_FONT_SIZE)
+    c.drawCentredString(text_x, text_y, f"SLOT {slot}")
+    c.restoreState()
+
+
 def draw_inner_qr(c: canvas.Canvas, page_width: float, page_height: float, qr_value: str) -> None:
     qr_image = make_qr_image_reader(qr_value)
     qr_x = max((page_width / 2) - QR_LEFT_OF_MIDDLE - QR_SIZE, 0)
@@ -193,6 +233,20 @@ def draw_cover_book_id(c: canvas.Canvas, page_width: float, page_height: float, 
     c.translate(center_x, book_id_y)
     c.rotate(90)
     c.drawCentredString(0, 0, str(book_id))
+    c.restoreState()
+
+
+def draw_cover_batch_id(c: canvas.Canvas, page_width: float, page_height: float, batch_id: int | None) -> None:
+    if batch_id is None:
+        return
+
+    center_x = page_width / 2 + (1 * MM_TO_PT)
+    batch_id_y = page_height * 0.20
+    c.saveState()
+    c.setFont("Helvetica-Bold", SPINE_BATCH_ID_FONT_SIZE)
+    c.translate(center_x, batch_id_y)
+    c.rotate(90)
+    c.drawCentredString(0, 0, str(batch_id))
     c.restoreState()
 
 
@@ -236,6 +290,9 @@ def create_overlay_bytes(
     content_page_height: float | None = None,
     content_x_offset: float = 0.0,
     content_y_offset: float = 0.0,
+    assigned_number=None,
+    batch_id: int | None = None,
+    include_batch_id: bool = False,
 ) -> bytes:
     packet = io.BytesIO()
     canvas_width, canvas_height = (page_width, page_height)
@@ -249,8 +306,10 @@ def create_overlay_bytes(
         draw_cover_stripes(c, effective_content_width, effective_content_height, colour1, colour2)
         if include_qr:
             draw_cover_qr(c, effective_content_width, effective_content_height, qr_value)
+            draw_cover_slot_label(c, effective_content_width, effective_content_height, assigned_number)
         if include_book_id:
             draw_cover_book_id(c, effective_content_width, effective_content_height, book_id)
+        draw_cover_batch_id(c, effective_content_width, effective_content_height, batch_id)
         draw_cover_spine_code(c, effective_content_width, effective_content_height, spine_code)
         c.restoreState()
     else:
@@ -259,6 +318,9 @@ def create_overlay_bytes(
 
         if include_book_id:
             draw_cover_book_id(c, page_width, page_height, book_id)
+
+        if include_book_id or include_batch_id:
+            draw_cover_batch_id(c, page_width, page_height, batch_id)
 
     c.save()
     return packet.getvalue()
@@ -319,6 +381,9 @@ def merge_overlay(
     content_page_height: float | None = None,
     content_x_offset: float = 0.0,
     content_y_offset: float = 0.0,
+    assigned_number=None,
+    batch_id: int | None = None,
+    include_batch_id: bool = False,
 ) -> None:
     page_width = float(page.mediabox.width)
     page_height = float(page.mediabox.height)
@@ -338,6 +403,9 @@ def merge_overlay(
         content_page_height=content_page_height,
         content_x_offset=content_x_offset,
         content_y_offset=content_y_offset,
+        assigned_number=assigned_number,
+        batch_id=batch_id,
+        include_batch_id=include_batch_id,
     )
     overlay_reader = PdfReader(io.BytesIO(overlay_bytes))
     page.merge_page(overlay_reader.pages[0])
@@ -371,6 +439,8 @@ def process_pdf(
     colour2=None,
     spine_code: str = "",
     book_size: str = "",
+    assigned_number=None,
+    batch_id: int | None = None,
 ) -> None:
     if not source_path.exists():
         raise FileNotFoundError(str(source_path))
@@ -426,9 +496,18 @@ def process_pdf(
                 content_page_height=content_page_height,
                 content_x_offset=content_x_offset,
                 content_y_offset=content_y_offset,
+                assigned_number=assigned_number,
+                batch_id=batch_id,
             )
         elif is_last_page:
-            merge_overlay(page, qr_value, book_id, include_qr=False, include_book_id=True)
+            merge_overlay(
+                page,
+                qr_value,
+                book_id,
+                include_qr=False,
+                include_book_id=True,
+                batch_id=batch_id,
+            )
         
         if not page_already_added:
             writer.add_page(page)
@@ -469,6 +548,33 @@ def process_realtime_inner_pdf(source_path: Path, output_path: Path, qr_value: s
     for index, page in enumerate(reader.pages):
         if index == 0:
             merge_realtime_inner_overlay(page, qr_value, spine_code)
+        writer.add_page(page)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("wb") as target:
+        writer.write(target)
+
+
+def process_shared_inner_pdf(source_path: Path, output_path: Path, qr_value: str, batch_id: int | None) -> None:
+    if not source_path.exists():
+        raise FileNotFoundError(str(source_path))
+
+    reader = PdfReader(str(source_path))
+    writer = PdfWriter()
+    if len(reader.pages) == 0:
+        raise ValueError(f"PDF has no pages: {source_path}")
+
+    for index, page in enumerate(reader.pages):
+        if index == 0:
+            merge_overlay(
+                page,
+                qr_value,
+                book_id=0,
+                include_qr=True,
+                include_book_id=False,
+                include_batch_id=True,
+                batch_id=batch_id,
+            )
         writer.add_page(page)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -913,6 +1019,8 @@ def process_cover_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[
             colour2=row["colour_2"],
             spine_code=str(row["spine_code"] or ""),
             book_size=str(row["book_size"] or ""),
+            assigned_number=row["assigned_number"],
+            batch_id=batch_id,
         )
         conn.execute(
             "UPDATE BookDetails SET cover_generated = 1 WHERE id = ?",
@@ -980,8 +1088,12 @@ def process_inner_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[
                 if not source_path.exists():
                     raise FileNotFoundError(f"Inner source PDF not found for book_id {row['book_id']}: {source_path}")
                 output_path = resolve_shared_inner_output(batch_id, innercode)
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(source_path, output_path)
+                process_shared_inner_pdf(
+                    source_path,
+                    output_path,
+                    str(row["innerqr"] or ""),
+                    batch_id,
+                )
                 conn.execute(
                     """
                     UPDATE BookDetails
@@ -1010,8 +1122,12 @@ def process_inner_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[
                 raise FileNotFoundError(f"Nonp inner source PDF not found for book_id {row['book_id']}: {source_path}")
             if innercode not in processed_nonp_innercodes:
                 output_path = resolve_shared_inner_output(batch_id, innercode)
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(source_path, output_path)
+                process_shared_inner_pdf(
+                    source_path,
+                    output_path,
+                    str(row["innerqr"] or ""),
+                    batch_id,
+                )
                 processed_nonp_innercodes.add(innercode)
                 generated += 1
             conn.execute(
@@ -1032,7 +1148,14 @@ def process_inner_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[
             raise FileNotFoundError(f"Inner PDF not found for book_id {row['book_id']}: {source_path}")
         
         output_path = resolve_inner_output(batch_id, row["book_id"])
-        process_pdf(source_path, output_path, str(row["innerqr"] or ""), int(row["book_id"]), place_book_id_on_last_page=True)
+        process_pdf(
+            source_path,
+            output_path,
+            str(row["innerqr"] or ""),
+            int(row["book_id"]),
+            place_book_id_on_last_page=True,
+            batch_id=batch_id,
+        )
         conn.execute(
             "UPDATE BookDetails SET inner_generated = 1 WHERE id = ?",
             (row["id"],),

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
@@ -11,6 +11,7 @@ let batchRegistryDb = null;
 
 const BATCH_ROOT_DIR = "\\\\pixartnas\\home\\INTERNAL_PROCESSING\\BATCHES";
 const BATCH_BACKUP_DIR = "\\\\pixartnas\\home\\INTERNAL_PROCESSING\\BATCHES_BACKUP";
+const BATCH_PROCESSING_DIR = "\\\\pixartnas\\home\\INTERNAL_PROCESSING\\BATCH_PROCESSING";
 const BOOK_DETAIL_JSON_PATH = "\\\\pixartnas\\home\\INTERNAL_PROCESSING\\BOOKDETAIL.json";
 const BOOK_GENERATOR_SCRIPT_PATH = path.join(__dirname, "book_generator", "generate_books.py");
 const MAX_BUCKETS = 12;
@@ -130,6 +131,14 @@ const ensureBatchDbSchema = (db) => {
       sec_guardian_name TEXT,
       sec_guardian_mobile TEXT,
       sec_guardian_image TEXT,
+      raw_json TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS prepared_classes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      class_id TEXT,
+      class_name TEXT,
+      school_id TEXT,
+      school_name TEXT,
       raw_json TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS prepared_products (
@@ -272,10 +281,10 @@ const normalizePreparedStudents = (students) =>
         : [null];
 
     return resolvedOrderIds.map((orderDetailsId) => ({
-      source_id: item?.id ?? null,
-      order_details_id: orderDetailsId || null,
-      student_id: item?.student_id ?? user?.id ?? null,
-      school_id: user?.school_id ?? item?.school_id ?? null,
+      source_id: normalizeIdValue(item?.id) || null,
+      order_details_id: normalizeIdValue(orderDetailsId) || null,
+      student_id: normalizeIdValue(item?.student_id ?? user?.id) || null,
+      school_id: normalizeIdValue(user?.school_id ?? item?.school_id) || null,
       school_name:
         user?.school_name ??
         item?.school_name ??
@@ -285,7 +294,7 @@ const normalizePreparedStudents = (students) =>
       colour1: item?.colour1 ?? null,
       colour2: item?.colour2 ?? null,
       assigned_number: item?.assigned_number ?? null,
-      class_id: studentClass?.id ?? classSection?.class_id ?? null,
+      class_id: normalizeIdValue(studentClass?.id ?? classSection?.class_id) || null,
       class_name:
         studentClass?.full_name ||
         studentClass?.name ||
@@ -387,19 +396,28 @@ const assignPreparedStudentSlots = (students) => {
 
 const normalizePreparedProducts = (products) =>
   (Array.isArray(products) ? products : []).map((item) => ({
-    source_id: item?.id ?? null,
-    school_id: item?.school_id ?? null,
+    source_id: normalizeIdValue(item?.id) || null,
+    school_id: normalizeIdValue(item?.school_id) || null,
     name: item?.name ?? null,
     type: item?.type ?? item?.product_type ?? null,
     raw_json: JSON.stringify(item || {}),
   }));
 
+const normalizePreparedClasses = (classes) =>
+  (Array.isArray(classes) ? classes : []).map((item) => ({
+    class_id: normalizeIdValue(item?.id ?? item?.class_id) || null,
+    class_name: item?.name ?? item?.class_name ?? null,
+    school_id: normalizeIdValue(item?.school_id) || null,
+    school_name: item?.school_name ?? null,
+    raw_json: JSON.stringify(item || {}),
+  }));
+
 const normalizePreparedProductDetails = (productDetails) =>
   (Array.isArray(productDetails) ? productDetails : []).map((item) => ({
-    source_id: item?.id ?? null,
-    product_id: item?.product_id ?? null,
-    school_id: item?.school_id ?? null,
-    class_id: item?.class_id ?? null,
+    source_id: normalizeIdValue(item?.id) || null,
+    product_id: normalizeIdValue(item?.product_id) || null,
+    school_id: normalizeIdValue(item?.school_id) || null,
+    class_id: normalizeIdValue(item?.class_id) || null,
     name: item?.name ?? null,
     covercode: item?.covercode ?? null,
     innercode: item?.innercode ?? null,
@@ -408,12 +426,12 @@ const normalizePreparedProductDetails = (productDetails) =>
 
 const normalizeNonpOrders = (orders) =>
   (Array.isArray(orders) ? orders : []).map((item) => ({
-    source_id: item?.id ?? null,
-    order_details_id: item?.order_details_id ?? null,
-    product_id: item?.product_id ?? null,
-    class_id: item?.class_id ?? null,
+    source_id: normalizeIdValue(item?.id) || null,
+    order_details_id: normalizeIdValue(item?.order_details_id) || null,
+    product_id: normalizeIdValue(item?.product_id) || null,
+    class_id: normalizeIdValue(item?.class_id) || null,
     quantity: item?.quantity ?? null,
-    school_id: item?.school_id ?? null,
+    school_id: normalizeIdValue(item?.school_id) || null,
     raw_json: JSON.stringify(item || {}),
   }));
 
@@ -501,12 +519,29 @@ const pickFirstValue = (...values) => {
   return "";
 };
 
-const toSingleDecimalFloatString = (value) => {
-  const parsed = Number.parseFloat(String(value ?? "").trim());
-  if (!Number.isFinite(parsed)) {
+const normalizeIdValue = (value) => {
+  let text = String(value ?? "").trim();
+  if (!text) return "";
+
+  // Upstream sometimes sends numeric IDs as "... .o"; treat that as ".0".
+  text = text.replace(/\.o+$/i, (match) => `.${"0".repeat(match.length - 1)}`);
+
+  const integerMatch = text.match(/^(\d+)$/);
+  if (integerMatch) {
+    return integerMatch[1].replace(/^0+(?=\d)/, "");
+  }
+
+  const decimalMatch = text.match(/^(\d+)\.(\d+)$/);
+  if (!decimalMatch) {
+    return text;
+  }
+
+  const integerPart = decimalMatch[1];
+  const fractionalPart = decimalMatch[2];
+  if (!/^0+$/.test(fractionalPart)) {
     return "";
   }
-  return parsed.toFixed(1);
+  return integerPart.replace(/^0+(?=\d)/, "");
 };
 
 const getProductOrderDetailsId = (product) => {
@@ -601,6 +636,13 @@ const buildBookQrCode = ({
 }) => {
   const normalizedPer = String(innercodePer || "").trim().toUpperCase();
   const isOrderDetailsPersonalized = isTruthyPersonalized(orderDetailsPersonalized);
+  const normalizedStudentId = normalizeIdValue(studentId);
+  const normalizedInnercode = normalizeIdValue(innercode);
+  const normalizedSchoolId = normalizeIdValue(schoolId);
+  const normalizedBatchId = normalizeIdValue(batchId);
+  const normalizedBookId = normalizeIdValue(bookId);
+  const normalizedLayerType = normalizeIdValue(layerType);
+  const normalizedAssignedNumber = normalizeIdValue(assignedNumber);
 
   if (!isCover && (!isOrderDetailsPersonalized || normalizedPer !== "Y")) {
     return [
@@ -608,11 +650,11 @@ const buildBookQrCode = ({
       "0",
       "0",
       "00",
-      zeroPad(innercode, 9),
+      zeroPad(normalizedInnercode, 9),
       "00000",
       "000",
       "00000",
-      zeroPad(layerType, 2),
+      zeroPad(normalizedLayerType, 2),
       "00000",
       "00000",
     ].join("");
@@ -622,14 +664,14 @@ const buildBookQrCode = ({
     "01",
     isCover ? "1" : "0",
     getQrPerDigit({ isCover, orderDetailsPersonalized, innercodePer }),
-    zeroPad(studentId, 5).slice(0, 2),
-    zeroPad(innercode, 9),
-    zeroPad(schoolId, 5),
-    zeroPad(studentId, 5).slice(-3),
-    zeroPad(batchId, 3),
-    zeroPad(bookId, 5),
-    zeroPad(layerType, 2),
-    zeroPad(assignedNumber, 5),
+    zeroPad(normalizedStudentId, 5).slice(0, 2),
+    zeroPad(normalizedInnercode, 9),
+    zeroPad(normalizedSchoolId, 5),
+    zeroPad(normalizedStudentId, 5).slice(-3),
+    zeroPad(normalizedBatchId, 3),
+    zeroPad(normalizedBookId, 5),
+    zeroPad(normalizedLayerType, 2),
+    zeroPad(normalizedAssignedNumber, 5),
     "00000",
   ].join("");
 };
@@ -811,6 +853,34 @@ const runBookGenerator = ({ batchId, batchName }) => {
   return { ok: false, message: "Python runtime not found. Install Python or ensure `python`/`py -3` is available." };
 };
 
+const openBatchProcessingFolder = async ({ batchId }) => {
+  const normalizedBatchId = Number(batchId);
+  if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
+    return { ok: false, message: "Invalid batch id." };
+  }
+
+  const targetPath = path.join(BATCH_PROCESSING_DIR, String(normalizedBatchId));
+  if (!fs.existsSync(targetPath)) {
+    return {
+      ok: false,
+      message: `Batch processing folder not found: ${targetPath}`,
+    };
+  }
+
+  const openResult = await shell.openPath(targetPath);
+  if (openResult) {
+    return { ok: false, message: openResult };
+  }
+
+  return {
+    ok: true,
+    data: {
+      batch_id: normalizedBatchId,
+      path: targetPath,
+    },
+  };
+};
+
 const constructBookDetails = ({ batchId }) => {
   const normalizedBatchId = Number(batchId);
   if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
@@ -851,7 +921,7 @@ const constructBookDetails = ({ batchId }) => {
     const orderByOrderNumber = new Map();
     const schoolNameBySchoolId = new Map();
     students.forEach((student) => {
-      const schoolId = pickFirstValue(student?.school_id);
+      const schoolId = normalizeIdValue(pickFirstValue(student?.school_id));
       const schoolName = pickFirstValue(student?.school_name);
       if (schoolId && schoolName && !schoolNameBySchoolId.has(schoolId)) {
         schoolNameBySchoolId.set(schoolId, schoolName);
@@ -859,8 +929,8 @@ const constructBookDetails = ({ batchId }) => {
     });
 
     batchOrders.forEach((order) => {
-      const orderNumber = pickFirstValue(order?.order_number);
-      const schoolId = pickFirstValue(order?.school_id);
+      const orderNumber = normalizeIdValue(pickFirstValue(order?.order_number));
+      const schoolId = normalizeIdValue(pickFirstValue(order?.school_id));
       const schoolName = pickFirstValue(order?.school_name);
       if (orderNumber && !orderByOrderNumber.has(orderNumber)) {
         orderByOrderNumber.set(orderNumber, order);
@@ -873,9 +943,9 @@ const constructBookDetails = ({ batchId }) => {
 
     const productDetailMap = new Map();
     productDetails.forEach((detail) => {
-      const productId = (pickFirstValue(detail?.product_id));
-      const classId = pickFirstValue(detail?.class_id);
-      const schoolId = pickFirstValue(detail?.school_id);
+      const productId = normalizeIdValue(pickFirstValue(detail?.product_id));
+      const classId = normalizeIdValue(pickFirstValue(detail?.class_id));
+      const schoolId = normalizeIdValue(pickFirstValue(detail?.school_id));
       if (!productId || !classId || !schoolId) {
         return;
       }
@@ -888,9 +958,9 @@ const constructBookDetails = ({ batchId }) => {
 
     const rows = [];
     for (const student of students) {
-      const orderDetailsId = pickFirstValue(student?.order_details_id);
-      const classId = pickFirstValue(student?.class_id);
-      const schoolId = pickFirstValue(student?.school_id);
+      const orderDetailsId = normalizeIdValue(pickFirstValue(student?.order_details_id));
+      const classId = normalizeIdValue(pickFirstValue(student?.class_id));
+      const schoolId = normalizeIdValue(pickFirstValue(student?.school_id));
       if (!orderDetailsId) {
         return {
           ok: false,
@@ -918,7 +988,7 @@ const constructBookDetails = ({ batchId }) => {
         };
       }
 
-      const productId = toSingleDecimalFloatString(pickFirstValue(order?.product_id));
+      const productId = normalizeIdValue(pickFirstValue(order?.product_id));
       if (!productId) {
         return {
           ok: false,
@@ -944,12 +1014,12 @@ const constructBookDetails = ({ batchId }) => {
           );
         }
         rows.push({
-          source_id: student.source_id,
-          order_details_id: student.order_details_id,
-          student_id: student.student_id,
-          school_id: student.school_id,
+          source_id: normalizeIdValue(student.source_id),
+          order_details_id: orderDetailsId,
+          student_id: normalizeIdValue(student.student_id),
+          school_id: schoolId,
           school_name: student.school_name,
-          class_id: student.class_id,
+          class_id: classId,
           class_name: student.class_name,
           student_name: student.student_name,
           dob: student.dob,
@@ -982,9 +1052,9 @@ const constructBookDetails = ({ batchId }) => {
     }
 
     nonpOrderAssignments.forEach((assignment) => {
-      const productId = (pickFirstValue(assignment?.product_id));
-      const classId = pickFirstValue(assignment?.class_id);
-      const schoolId = pickFirstValue(assignment?.school_id);
+      const productId = normalizeIdValue(pickFirstValue(assignment?.product_id));
+      const classId = normalizeIdValue(pickFirstValue(assignment?.class_id));
+      const schoolId = normalizeIdValue(pickFirstValue(assignment?.school_id));
 
       if (!productId || !classId || !schoolId) {
         throw new Error(
@@ -993,7 +1063,7 @@ const constructBookDetails = ({ batchId }) => {
       }
 
 
-      const mappedDetails = productDetailMap.get(`${toSingleDecimalFloatString(productId)}::${classId}::${schoolId}`) || [];
+      const mappedDetails = productDetailMap.get(`${productId}::${classId}::${schoolId}`) || [];
       if (!mappedDetails.length) {
         throw new Error(
           `No product details found for nonp order assignment ${assignment.nonp_order_source_id || assignment.id}, product ${productId}, class ${classId}, school ${schoolId}.`
@@ -1010,12 +1080,12 @@ const constructBookDetails = ({ batchId }) => {
         }
 
         rows.push({
-          source_id: assignment.nonp_order_source_id,
-          order_details_id: assignment.order_details_id,
+          source_id: normalizeIdValue(assignment.nonp_order_source_id),
+          order_details_id: normalizeIdValue(assignment.order_details_id),
           student_id: "",
-          school_id: assignment.school_id,
-          school_name: schoolNameBySchoolId.get(pickFirstValue(parseInt(assignment.school_id))) || "",
-          class_id: assignment.class_id,
+          school_id: schoolId,
+          school_name: schoolNameBySchoolId.get(schoolId) || "",
+          class_id: classId,
           class_name: "",
           student_name: "",
           dob: "",
@@ -1697,6 +1767,261 @@ const listBatchPreparedProductDetails = ({ batchId }) => {
   }
 };
 
+const listBatchDetailedInfo = ({ batchId }) => {
+  const normalizedBatchId = Number(batchId);
+  if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
+    return { ok: false, message: "Invalid batch id." };
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const batch = registryDb
+    .prepare("SELECT id, batch_name, status, db_path FROM batches WHERE id = ?")
+    .get(normalizedBatchId);
+
+  if (!batch) {
+    return { ok: false, message: "Batch not found." };
+  }
+
+  let batchDb;
+  try {
+    batchDb = new Database(batch.db_path);
+    ensureBatchDbSchema(batchDb);
+
+    const preparedClasses = batchDb
+      .prepare(`
+        SELECT class_id, class_name, school_id, school_name
+        FROM prepared_classes
+        ORDER BY id ASC
+      `)
+      .all();
+
+    const preparedProductDetails = batchDb
+      .prepare(`
+        SELECT source_id, product_id, school_id, class_id, name, covercode, innercode
+        FROM prepared_product_details
+        ORDER BY id ASC
+      `)
+      .all();
+
+    const preparedStudents = batchDb
+      .prepare(`
+        SELECT source_id, order_details_id, student_id, school_id, school_name, class_id, class_name, student_name, assigned_number, raw_json
+        FROM prepared_students
+        ORDER BY id ASC
+      `)
+      .all();
+
+    const nonpOrderAssignments = batchDb
+      .prepare(`
+        SELECT school_id, class_id
+        FROM nonp_order_assignments
+        ORDER BY id ASC
+      `)
+      .all();
+
+    const classNameByKey = new Map();
+    const schoolNameById = new Map();
+    const makeKey = (schoolId, classId) =>
+      `${pickFirstValue(schoolId) || "-"}::${pickFirstValue(classId) || "-"}`;
+
+    preparedClasses.forEach((row) => {
+      const schoolId = pickFirstValue(row?.school_id);
+      const classId = pickFirstValue(row?.class_id);
+      const className = pickFirstValue(row?.class_name);
+      const schoolName = pickFirstValue(row?.school_name);
+      if (schoolId && schoolName && !schoolNameById.has(schoolId)) {
+        schoolNameById.set(schoolId, schoolName);
+      }
+      if (schoolId && classId && className && !classNameByKey.has(makeKey(schoolId, classId))) {
+        classNameByKey.set(makeKey(schoolId, classId), className);
+      }
+    });
+
+    const resolveSchoolName = (schoolId, fallback) =>
+      pickFirstValue(fallback, schoolNameById.get(pickFirstValue(schoolId)), schoolId, "-");
+    const resolveClassName = (schoolId, classId, fallback) =>
+      pickFirstValue(fallback, classNameByKey.get(makeKey(schoolId, classId)), classId, "-");
+
+    const schools = new Map();
+    const ensureSchool = (schoolId, schoolName) => {
+      const normalizedSchoolId = pickFirstValue(schoolId) || "-";
+      if (!schools.has(normalizedSchoolId)) {
+        schools.set(normalizedSchoolId, {
+          school_id: normalizedSchoolId,
+          school_name: resolveSchoolName(normalizedSchoolId, schoolName),
+          product_details_by_class: [],
+          personalized_students_by_class: [],
+          nonp_quantity_by_class: [],
+        });
+      }
+      const bucket = schools.get(normalizedSchoolId);
+      if (bucket.school_name === "-" && schoolName) {
+        bucket.school_name = resolveSchoolName(normalizedSchoolId, schoolName);
+      }
+      return bucket;
+    };
+
+    const productClassGroups = new Map();
+    preparedProductDetails.forEach((row) => {
+      const schoolId = pickFirstValue(row?.school_id) || "-";
+      const classId = pickFirstValue(row?.class_id) || "-";
+      const school = ensureSchool(schoolId, "");
+      const key = makeKey(schoolId, classId);
+
+      if (!productClassGroups.has(key)) {
+        productClassGroups.set(key, {
+          school_id: school.school_id,
+          class_id: classId,
+          class_name: resolveClassName(schoolId, classId, ""),
+          products: [],
+        });
+      }
+
+      productClassGroups.get(key).products.push({
+        source_id: pickFirstValue(row?.source_id),
+        product_id: pickFirstValue(row?.product_id),
+        name: pickFirstValue(row?.name, "-"),
+        covercode: pickFirstValue(row?.covercode, "-"),
+        innercode: pickFirstValue(row?.innercode, "-"),
+      });
+    });
+
+    for (const group of productClassGroups.values()) {
+      const school = ensureSchool(group.school_id, "");
+      school.product_details_by_class.push(group);
+    }
+
+    const personalizedStudentGroups = new Map();
+    preparedStudents.forEach((row) => {
+      const personalized = isTruthyPersonalized(getOrderDetailsPersonalizedValue(row));
+      if (!personalized) return;
+
+      const schoolId = pickFirstValue(row?.school_id) || "-";
+      const classId = pickFirstValue(row?.class_id) || "-";
+      const schoolName = pickFirstValue(row?.school_name);
+      const className = pickFirstValue(row?.class_name);
+      const school = ensureSchool(schoolId, schoolName);
+      const key = makeKey(schoolId, classId);
+
+      if (!personalizedStudentGroups.has(key)) {
+        personalizedStudentGroups.set(key, {
+          school_id: school.school_id,
+          class_id: classId,
+          class_name: resolveClassName(schoolId, classId, className),
+          students: [],
+        });
+      }
+
+      personalizedStudentGroups.get(key).students.push({
+        source_id: pickFirstValue(row?.source_id),
+        order_details_id: pickFirstValue(row?.order_details_id),
+        student_id: pickFirstValue(row?.student_id),
+        student_name: pickFirstValue(row?.student_name, "-"),
+        assigned_number: row?.assigned_number ?? null,
+      });
+    });
+
+    for (const group of personalizedStudentGroups.values()) {
+      const school = ensureSchool(group.school_id, "");
+      school.personalized_students_by_class.push(group);
+    }
+
+    const nonpClassQuantities = new Map();
+    nonpOrderAssignments.forEach((row) => {
+      const schoolId = pickFirstValue(row?.school_id) || "-";
+      const classId = pickFirstValue(row?.class_id) || "-";
+      const key = makeKey(schoolId, classId);
+      const current = nonpClassQuantities.get(key) || {
+        school_id: schoolId,
+        class_id: classId,
+        quantity: 0,
+      };
+      current.quantity += 1;
+      nonpClassQuantities.set(key, current);
+    });
+
+    for (const item of nonpClassQuantities.values()) {
+      const school = ensureSchool(item.school_id, "");
+      school.nonp_quantity_by_class.push({
+        school_id: item.school_id,
+        class_id: item.class_id,
+        class_name: resolveClassName(item.school_id, item.class_id, ""),
+        quantity: item.quantity,
+      });
+    }
+
+    const sortByClass = (left, right) =>
+      pickFirstValue(left?.class_name, left?.class_id).localeCompare(
+        pickFirstValue(right?.class_name, right?.class_id)
+      );
+    const sortByStudent = (left, right) =>
+      pickFirstValue(left?.student_name, left?.student_id).localeCompare(
+        pickFirstValue(right?.student_name, right?.student_id)
+      );
+    const sortByProduct = (left, right) =>
+      pickFirstValue(left?.name, left?.innercode, left?.covercode).localeCompare(
+        pickFirstValue(right?.name, right?.innercode, right?.covercode)
+      );
+
+    const schoolList = Array.from(schools.values())
+      .map((school) => {
+        school.product_details_by_class.sort(sortByClass);
+        school.personalized_students_by_class.sort(sortByClass);
+        school.nonp_quantity_by_class.sort(sortByClass);
+        school.product_details_by_class.forEach((group) => group.products.sort(sortByProduct));
+        school.personalized_students_by_class.forEach((group) => group.students.sort(sortByStudent));
+        return school;
+      })
+      .sort((left, right) =>
+        pickFirstValue(left?.school_name, left?.school_id).localeCompare(
+          pickFirstValue(right?.school_name, right?.school_id)
+        )
+      );
+
+    const totals = schoolList.reduce(
+      (acc, school) => {
+        acc.school_count += 1;
+        acc.product_detail_count += school.product_details_by_class.reduce(
+          (total, group) => total + (Array.isArray(group.products) ? group.products.length : 0),
+          0
+        );
+        acc.personalized_student_count += school.personalized_students_by_class.reduce(
+          (total, group) => total + (Array.isArray(group.students) ? group.students.length : 0),
+          0
+        );
+        acc.nonp_quantity_count += school.nonp_quantity_by_class.reduce(
+          (total, group) => total + Number(group.quantity || 0),
+          0
+        );
+        return acc;
+      },
+      {
+        school_count: 0,
+        product_detail_count: 0,
+        personalized_student_count: 0,
+        nonp_quantity_count: 0,
+      }
+    );
+
+    return {
+      ok: true,
+      data: {
+        batch_id: batch.id,
+        batch_name: batch.batch_name,
+        status: batch.status,
+        schools: schoolList,
+        totals,
+      },
+    };
+  } catch (error) {
+    return { ok: false, message: error.message || "Unable to load batch detailed info." };
+  } finally {
+    if (batchDb) {
+      batchDb.close();
+    }
+  }
+};
+
 const moveProductDetailToPrintLater = ({ batchId, productDetailSourceId }) => {
   const normalizedBatchId = Number(batchId);
   const normalizedSourceId = String(productDetailSourceId || "").trim();
@@ -2100,7 +2425,7 @@ const removeOrderFromBatch = ({ orderNumber, batchId }) => {
 };
 
 const finalizeBatchPreparation = (
-  { batchId, students, products, productDetails, nonpOrders },
+  { batchId, students, classes, products, productDetails, nonpOrders },
   options = {}
 ) => {
   const normalizedBatchId = Number(batchId);
@@ -2122,6 +2447,7 @@ const finalizeBatchPreparation = (
   }
 
   const preparedStudents = normalizePreparedStudents(students);
+  const preparedClasses = normalizePreparedClasses(classes);
   const preparedProducts = normalizePreparedProducts(products);
   const preparedProductDetails = normalizePreparedProductDetails(productDetails);
   const preparedNonpOrders = normalizeNonpOrders(nonpOrders);
@@ -2170,6 +2496,7 @@ const finalizeBatchPreparation = (
 
     const batchTransaction = batchDb.transaction(() => {
       batchDb.prepare("DELETE FROM prepared_students").run();
+      batchDb.prepare("DELETE FROM prepared_classes").run();
       batchDb.prepare("DELETE FROM prepared_products").run();
       batchDb.prepare("DELETE FROM prepared_product_details").run();
       batchDb.prepare("DELETE FROM nonp_orders").run();
@@ -2207,6 +2534,20 @@ const finalizeBatchPreparation = (
           item.sec_guardian_name,
           item.sec_guardian_mobile,
           item.sec_guardian_image,
+          item.raw_json
+        );
+      });
+
+      const insertClass = batchDb.prepare(`
+        INSERT INTO prepared_classes (class_id, class_name, school_id, school_name, raw_json)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      preparedClasses.forEach((item) => {
+        insertClass.run(
+          item.class_id,
+          item.class_name,
+          item.school_id,
+          item.school_name,
           item.raw_json
         );
       });
@@ -2278,7 +2619,7 @@ const finalizeBatchPreparation = (
       batchDb
         .prepare("INSERT INTO batch_log (message, created_at) VALUES (?, ?)")
         .run(
-          `${allowBuildingRefetch ? "Batch fetched again and prepared" : "Batch prepared"} with ${assignedStudents.length} students, ${preparedProducts.length} products, ${preparedProductDetails.length} product details, ${preparedNonpOrders.length} nonp orders and ${assignedNonpOrderUnits.length} assigned nonp units. Buckets used: ${Math.ceil(nonpAllocationMeta.next_basket_slot / BASKETS_PER_BUCKET)}, baskets used: ${nonpAllocationMeta.next_basket_slot}.`,
+          `${allowBuildingRefetch ? "Batch fetched again and prepared" : "Batch prepared"} with ${assignedStudents.length} students, ${preparedClasses.length} classes, ${preparedProducts.length} products, ${preparedProductDetails.length} product details, ${preparedNonpOrders.length} nonp orders and ${assignedNonpOrderUnits.length} assigned nonp units. Buckets used: ${Math.ceil(nonpAllocationMeta.next_basket_slot / BASKETS_PER_BUCKET)}, baskets used: ${nonpAllocationMeta.next_basket_slot}.`,
           preparedAt
         );
     });
@@ -2293,6 +2634,7 @@ const finalizeBatchPreparation = (
         batch_name: batch.batch_name,
         status: "building",
         students_count: assignedStudents.length,
+        classes_count: preparedClasses.length,
         products_count: preparedProducts.length,
         product_details_count: preparedProductDetails.length,
         nonp_orders_count: preparedNonpOrders.length,
@@ -2388,6 +2730,13 @@ app.whenReady().then(() => {
       return { ok: false, message: error.message || "Unable to load prepared product details." };
     }
   });
+  ipcMain.handle("list-batch-detailed-info", (_event, payload) => {
+    try {
+      return listBatchDetailedInfo(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to load batch detailed info." };
+    }
+  });
   ipcMain.handle("list-order-batch-links", () => {
     try {
       return { ok: true, data: listOrderBatchLinks() };
@@ -2442,6 +2791,13 @@ app.whenReady().then(() => {
       return generateBooks(payload || {});
     } catch (error) {
       return { ok: false, message: error.message || "Unable to generate books." };
+    }
+  });
+  ipcMain.handle("open-batch-processing-folder", async (_event, payload) => {
+    try {
+      return await openBatchProcessingFolder(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to open batch processing folder." };
     }
   });
   ipcMain.handle("regenerate-books", (_event, payload) => {
