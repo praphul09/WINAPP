@@ -1652,6 +1652,163 @@ const prepareBatchCompletion = ({ batchId }) => {
   }
 };
 
+const listBatchStageStatus = ({ batchId }) => {
+  const normalizedBatchId = Number(batchId);
+  if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
+    return { ok: false, message: "Invalid batch id." };
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const batch = registryDb
+    .prepare("SELECT id, batch_name, status, db_path FROM batches WHERE id = ?")
+    .get(normalizedBatchId);
+
+  if (!batch) {
+    return { ok: false, message: "Batch not found." };
+  }
+
+  let batchDb;
+  try {
+    batchDb = new Database(batch.db_path);
+    ensureBatchDbSchema(batchDb);
+
+    if (!tableExists(batchDb, "school_student_books")) {
+      return { ok: false, message: "school_student_books table does not exist. Construct book detail first." };
+    }
+
+    const schoolStudentBooksCount = getTableCount(batchDb, "school_student_books");
+    if (schoolStudentBooksCount <= 0) {
+      return { ok: false, message: "school_student_books has no entries. Construct book detail first." };
+    }
+
+    const summary = batchDb
+      .prepare(`
+        SELECT
+          COUNT(*) AS total_rows,
+          SUM(
+            CASE
+              WHEN (
+                LOWER(TRIM(COALESCE(innercode, ''))) LIKE '%s'
+                OR LOWER(TRIM(COALESCE(innercode, ''))) LIKE '%b'
+                OR LOWER(TRIM(COALESCE(outercode, ''))) LIKE '%s'
+                OR LOWER(TRIM(COALESCE(outercode, ''))) LIKE '%b'
+              ) THEN 1
+              ELSE 0
+            END
+          ) AS excluded_rows,
+          SUM(
+            CASE
+              WHEN (
+                LOWER(TRIM(COALESCE(innercode, ''))) LIKE '%s'
+                OR LOWER(TRIM(COALESCE(innercode, ''))) LIKE '%b'
+                OR LOWER(TRIM(COALESCE(outercode, ''))) LIKE '%s'
+                OR LOWER(TRIM(COALESCE(outercode, ''))) LIKE '%b'
+              ) THEN 0
+              ELSE 1
+            END
+          ) AS considered_rows,
+          SUM(
+            CASE
+              WHEN (
+                LOWER(TRIM(COALESCE(innercode, ''))) LIKE '%s'
+                OR LOWER(TRIM(COALESCE(innercode, ''))) LIKE '%b'
+                OR LOWER(TRIM(COALESCE(outercode, ''))) LIKE '%s'
+                OR LOWER(TRIM(COALESCE(outercode, ''))) LIKE '%b'
+              ) THEN 0
+              WHEN lamination_status = 1 THEN 1
+              ELSE 0
+            END
+          ) AS lamination_done,
+          SUM(
+            CASE
+              WHEN (
+                LOWER(TRIM(COALESCE(innercode, ''))) LIKE '%s'
+                OR LOWER(TRIM(COALESCE(innercode, ''))) LIKE '%b'
+                OR LOWER(TRIM(COALESCE(outercode, ''))) LIKE '%s'
+                OR LOWER(TRIM(COALESCE(outercode, ''))) LIKE '%b'
+              ) THEN 0
+              WHEN COALESCE(lamination_status, 0) = 1 THEN 0
+              ELSE 1
+            END
+          ) AS lamination_pending,
+          SUM(
+            CASE
+              WHEN (
+                LOWER(TRIM(COALESCE(innercode, ''))) LIKE '%s'
+                OR LOWER(TRIM(COALESCE(innercode, ''))) LIKE '%b'
+                OR LOWER(TRIM(COALESCE(outercode, ''))) LIKE '%s'
+                OR LOWER(TRIM(COALESCE(outercode, ''))) LIKE '%b'
+              ) THEN 0
+              WHEN composing_status = 1 THEN 1
+              ELSE 0
+            END
+          ) AS composing_done,
+          SUM(
+            CASE
+              WHEN (
+                LOWER(TRIM(COALESCE(innercode, ''))) LIKE '%s'
+                OR LOWER(TRIM(COALESCE(innercode, ''))) LIKE '%b'
+                OR LOWER(TRIM(COALESCE(outercode, ''))) LIKE '%s'
+                OR LOWER(TRIM(COALESCE(outercode, ''))) LIKE '%b'
+              ) THEN 0
+              WHEN COALESCE(composing_status, 0) = 1 THEN 0
+              ELSE 1
+            END
+          ) AS composing_pending,
+          SUM(
+            CASE
+              WHEN (
+                LOWER(TRIM(COALESCE(innercode, ''))) LIKE '%s'
+                OR LOWER(TRIM(COALESCE(innercode, ''))) LIKE '%b'
+                OR LOWER(TRIM(COALESCE(outercode, ''))) LIKE '%s'
+                OR LOWER(TRIM(COALESCE(outercode, ''))) LIKE '%b'
+              ) THEN 0
+              WHEN sorting_status = 1 THEN 1
+              ELSE 0
+            END
+          ) AS sorting_done,
+          SUM(
+            CASE
+              WHEN (
+                LOWER(TRIM(COALESCE(innercode, ''))) LIKE '%s'
+                OR LOWER(TRIM(COALESCE(innercode, ''))) LIKE '%b'
+                OR LOWER(TRIM(COALESCE(outercode, ''))) LIKE '%s'
+                OR LOWER(TRIM(COALESCE(outercode, ''))) LIKE '%b'
+              ) THEN 0
+              WHEN COALESCE(sorting_status, 0) = 1 THEN 0
+              ELSE 1
+            END
+          ) AS sorting_pending
+        FROM school_student_books
+      `)
+      .get();
+
+    return {
+      ok: true,
+      data: {
+        batch_id: batch.id,
+        batch_name: batch.batch_name,
+        status: batch.status,
+        total_rows: Number(summary?.total_rows || 0),
+        excluded_rows: Number(summary?.excluded_rows || 0),
+        considered_rows: Number(summary?.considered_rows || 0),
+        lamination_done: Number(summary?.lamination_done || 0),
+        lamination_pending: Number(summary?.lamination_pending || 0),
+        composing_done: Number(summary?.composing_done || 0),
+        composing_pending: Number(summary?.composing_pending || 0),
+        sorting_done: Number(summary?.sorting_done || 0),
+        sorting_pending: Number(summary?.sorting_pending || 0),
+      },
+    };
+  } catch (error) {
+    return { ok: false, message: error.message || "Unable to load batch stage status." };
+  } finally {
+    if (batchDb) {
+      batchDb.close();
+    }
+  }
+};
+
 const setBatchCompleted = ({ batchId }) => {
   const normalizedBatchId = Number(batchId);
   if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
@@ -1893,16 +2050,12 @@ const listBatchDetailedInfo = ({ batchId }) => {
 
     const personalizedStudentGroups = new Map();
     preparedStudents.forEach((row) => {
-      const personalized = isTruthyPersonalized(getOrderDetailsPersonalizedValue(row));
-      if (!personalized) return;
-
       const schoolId = pickFirstValue(row?.school_id) || "-";
       const classId = pickFirstValue(row?.class_id) || "-";
       const schoolName = pickFirstValue(row?.school_name);
       const className = pickFirstValue(row?.class_name);
       const school = ensureSchool(schoolId, schoolName);
       const key = makeKey(schoolId, classId);
-
       if (!personalizedStudentGroups.has(key)) {
         personalizedStudentGroups.set(key, {
           school_id: school.school_id,
@@ -1923,6 +2076,7 @@ const listBatchDetailedInfo = ({ batchId }) => {
 
     for (const group of personalizedStudentGroups.values()) {
       const school = ensureSchool(group.school_id, "");
+      group.student_count = Array.isArray(group.students) ? group.students.length : 0;
       school.personalized_students_by_class.push(group);
     }
 
@@ -2826,6 +2980,13 @@ app.whenReady().then(() => {
       return prepareBatchCompletion(payload || {});
     } catch (error) {
       return { ok: false, message: error.message || "Unable to prepare batch completion." };
+    }
+  });
+  ipcMain.handle("list-batch-stage-status", (_event, payload) => {
+    try {
+      return listBatchStageStatus(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to load batch stage status." };
     }
   });
   ipcMain.handle("set-batch-completed", (_event, payload) => {

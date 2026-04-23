@@ -33,7 +33,6 @@ QR_BOTTOM_MARGIN_NEW = 12 * MM_TO_PT
 SLOT_LABEL_GAP = 4 * MM_TO_PT
 SLOT_LABEL_FONT_SIZE = 10
 BOOK_ID_FONT_SIZE = 18
-SPINE_BATCH_ID_FONT_SIZE = 18
 BOOK_ID_X_MARGIN = 24
 BOOK_ID_Y_MARGIN = 32
 STRIPE_WIDTH = 5 * MM_TO_PT
@@ -171,14 +170,15 @@ def draw_cover_side_strips(c: canvas.Canvas, page_width: float, page_height: flo
 
 def draw_cover_qr(c: canvas.Canvas, page_width: float, page_height : float, qr_value: str) -> None:
     qr_image = make_qr_image_reader(qr_value)
-    qr_x = max((page_width / 2) - QR_LEFT_OF_MIDDLE - QR_SIZE, 0)
-    
-    if page_height > 291 * MM_TO_PT:
-        qr_y = QR_BOTTOM_MARGIN
-    else:
-        qr_y = QR_BOTTOM_MARGIN_NEW
-        
+    qr_x, qr_y = get_cover_qr_position(page_width, page_height)
     c.drawImage(qr_image, qr_x, qr_y, width=QR_SIZE, height=QR_SIZE, preserveAspectRatio=True, mask="auto")
+
+
+def get_cover_qr_position(page_width: float, page_height: float) -> tuple[float, float]:
+    qr_x = max((page_width / 2) - QR_LEFT_OF_MIDDLE - QR_SIZE, 0)
+    if page_height > 291 * MM_TO_PT:
+        return qr_x, QR_BOTTOM_MARGIN
+    return qr_x, QR_BOTTOM_MARGIN_NEW
 
 
 def assigned_number_to_slot(assigned_number) -> int | None:
@@ -203,11 +203,7 @@ def draw_cover_slot_label(
     if slot is None:
         return
 
-    qr_x = max((page_width / 2) - QR_LEFT_OF_MIDDLE - QR_SIZE, 0)
-    if page_height > 291 * MM_TO_PT:
-        qr_y = QR_BOTTOM_MARGIN
-    else:
-        qr_y = QR_BOTTOM_MARGIN_NEW
+    qr_x, qr_y = get_cover_qr_position(page_width, page_height)
 
     text_x = qr_x + (QR_SIZE / 2)
     text_y = max(qr_y - SLOT_LABEL_GAP, 0)
@@ -220,9 +216,13 @@ def draw_cover_slot_label(
 
 def draw_inner_qr(c: canvas.Canvas, page_width: float, page_height: float, qr_value: str) -> None:
     qr_image = make_qr_image_reader(qr_value)
-    qr_x = max((page_width / 2) - QR_LEFT_OF_MIDDLE - QR_SIZE, 0)
-    qr_y = QR_BOTTOM_MARGIN_NEW
+    qr_x, qr_y = get_inner_qr_position(page_width)
     c.drawImage(qr_image, qr_x, qr_y, width=QR_SIZE, height=QR_SIZE, preserveAspectRatio=True, mask="auto")
+
+
+def get_inner_qr_position(page_width: float) -> tuple[float, float]:
+    qr_x = max((page_width / 2) - QR_LEFT_OF_MIDDLE - QR_SIZE, 0)
+    return qr_x, QR_BOTTOM_MARGIN_NEW
 
 
 def draw_cover_book_id(c: canvas.Canvas, page_width: float, page_height: float, book_id: int) -> None:
@@ -236,17 +236,27 @@ def draw_cover_book_id(c: canvas.Canvas, page_width: float, page_height: float, 
     c.restoreState()
 
 
-def draw_cover_batch_id(c: canvas.Canvas, page_width: float, page_height: float, batch_id: int | None) -> None:
+def draw_batch_id_above_qr(
+    c: canvas.Canvas,
+    page_width: float,
+    page_height: float,
+    batch_id: int | None,
+    *,
+    cover_mode: bool,
+) -> None:
     if batch_id is None:
         return
 
-    center_x = page_width / 2 + (1 * MM_TO_PT)
-    batch_id_y = page_height * 0.20
+    if cover_mode:
+        qr_x, qr_y = get_cover_qr_position(page_width, page_height)
+    else:
+        qr_x, qr_y = get_inner_qr_position(page_width)
+
+    text_x = qr_x + (QR_SIZE / 2)
+    text_y = min(qr_y + QR_SIZE + SLOT_LABEL_GAP, page_height - SLOT_LABEL_FONT_SIZE)
     c.saveState()
-    c.setFont("Helvetica-Bold", SPINE_BATCH_ID_FONT_SIZE)
-    c.translate(center_x, batch_id_y)
-    c.rotate(90)
-    c.drawCentredString(0, 0, str(batch_id))
+    c.setFont("Helvetica-Bold", SLOT_LABEL_FONT_SIZE)
+    c.drawCentredString(text_x, text_y, str(batch_id))
     c.restoreState()
 
 
@@ -257,6 +267,22 @@ def draw_cover_spine_code(c: canvas.Canvas, page_width: float, page_height: floa
 
     center_x = page_width / 2
     spine_y = page_height * 0.30
+    c.saveState()
+    c.setFont("Helvetica-Bold", 14)
+    c.translate(center_x, spine_y)
+    c.rotate(90)
+    c.drawCentredString(0, 0, value)
+    c.restoreState()
+
+
+def draw_inner_spine_code_bottom(c: canvas.Canvas, page_width: float, page_height: float, spine_code: str) -> None:
+    value = str(spine_code or "").strip()
+    if not value:
+        return
+
+    center_x = page_width / 2
+    # Place near the bottom end of the spine.
+    spine_y = max(page_height * 0.20, 12 * MM_TO_PT)
     c.saveState()
     c.setFont("Helvetica-Bold", 14)
     c.translate(center_x, spine_y)
@@ -307,20 +333,32 @@ def create_overlay_bytes(
         if include_qr:
             draw_cover_qr(c, effective_content_width, effective_content_height, qr_value)
             draw_cover_slot_label(c, effective_content_width, effective_content_height, assigned_number)
+            draw_batch_id_above_qr(
+                c,
+                effective_content_width,
+                effective_content_height,
+                batch_id,
+                cover_mode=True,
+            )
         if include_book_id:
             draw_cover_book_id(c, effective_content_width, effective_content_height, book_id)
-        draw_cover_batch_id(c, effective_content_width, effective_content_height, batch_id)
         draw_cover_spine_code(c, effective_content_width, effective_content_height, spine_code)
         c.restoreState()
     else:
         if include_qr:
             draw_inner_qr(c, page_width, page_height, qr_value)
+            if include_book_id or include_batch_id:
+                draw_batch_id_above_qr(
+                    c,
+                    page_width,
+                    page_height,
+                    batch_id,
+                    cover_mode=False,
+                )
 
         if include_book_id:
             draw_cover_book_id(c, page_width, page_height, book_id)
-
-        if include_book_id or include_batch_id:
-            draw_cover_batch_id(c, page_width, page_height, batch_id)
+        draw_inner_spine_code_bottom(c, page_width, page_height, spine_code)
 
     c.save()
     return packet.getvalue()
@@ -555,7 +593,13 @@ def process_realtime_inner_pdf(source_path: Path, output_path: Path, qr_value: s
         writer.write(target)
 
 
-def process_shared_inner_pdf(source_path: Path, output_path: Path, qr_value: str, batch_id: int | None) -> None:
+def process_shared_inner_pdf(
+    source_path: Path,
+    output_path: Path,
+    qr_value: str,
+    batch_id: int | None,
+    spine_code: str,
+) -> None:
     if not source_path.exists():
         raise FileNotFoundError(str(source_path))
 
@@ -574,6 +618,7 @@ def process_shared_inner_pdf(source_path: Path, output_path: Path, qr_value: str
                 include_book_id=False,
                 include_batch_id=True,
                 batch_id=batch_id,
+                spine_code=spine_code,
             )
         writer.add_page(page)
 
@@ -638,19 +683,31 @@ def make_safe_filename_part(value: str, fallback: str) -> str:
     return sanitized or fallback
 
 
-def collect_realtime_inner_groups(book_rows: list[sqlite3.Row]) -> dict[str, dict]:
-    groups: dict[str, dict] = {}
+def collect_shared_inner_groups(book_rows: list[sqlite3.Row]) -> list[dict]:
+    groups: dict[tuple[str, str], dict] = {}
     for row in book_rows:
+        innercode = str(row["innercode"] or "").strip()
+        if not innercode:
+            continue
+
         per_value = str(row["personlized"] or "").strip().upper()
         real_time_print = str(row["real_time_print"] or "").strip().upper()
-        if per_value == "Y" or real_time_print != "Y":
+        nonp_order = int(row["nonp_order"] or 0)
+
+        group_type = ""
+        if per_value != "Y" and real_time_print == "Y":
+            group_type = "realtime"
+        elif per_value == "Y" and nonp_order == 1:
+            group_type = "nonp"
+        else:
             continue
-        innercode = str(row["innercode"] or "").strip()
-        if not innercode:
-            continue
+
+        key = (group_type, innercode)
         group = groups.setdefault(
-            innercode,
+            key,
             {
+                "type": group_type,
+                "innercode": innercode,
                 "row": row,
                 "count": 0,
                 "spine_code": str(row["spine_code"] or "").strip(),
@@ -658,63 +715,25 @@ def collect_realtime_inner_groups(book_rows: list[sqlite3.Row]) -> dict[str, dic
             },
         )
         group["count"] += 1
-    return groups
+
+    return list(groups.values())
 
 
-def collect_nonp_inner_groups(book_rows: list[sqlite3.Row]) -> dict[str, dict]:
-    groups: dict[str, dict] = {}
-    for row in book_rows:
-        if int(row["nonp_order"] or 0) != 1:
-            continue
-        if str(row["personlized"] or "").strip().upper() != "Y":
-            continue
-        innercode = str(row["innercode"] or "").strip()
-        if not innercode:
-            continue
-        group = groups.setdefault(
-            innercode,
-            {
-                "row": row,
-                "count": 0,
-                "spine_code": str(row["spine_code"] or "").strip(),
-                "book_size": str(row["book_size"] or "").strip().upper() or "UNSPECIFIED",
-            },
-        )
-        group["count"] += 1
-    return groups
-
-
-def copy_realtime_inner_groups_to_binders(batch_id: int, realtime_groups: dict[str, dict]) -> None:
+def copy_shared_inner_groups_to_binders(batch_id: int, inner_groups: list[dict]) -> None:
     binders_root = resolve_inner_binders_root(batch_id)
     binders_root.mkdir(parents=True, exist_ok=True)
 
-    #for pdf_path in binders_root.glob("* copies *.pdf"):
-    #    pdf_path.unlink()
-
-    for innercode, group in realtime_groups.items():
+    for binder_number, group in enumerate(inner_groups, start=1):
+        innercode = str(group["innercode"] or "").strip()
         source_path = resolve_shared_inner_output(batch_id, innercode)
         if not source_path.exists():
+            if group["type"] == "nonp":
+                raise FileNotFoundError(f"Shared nonp inner PDF not found for innercode {innercode}: {source_path}")
             raise FileNotFoundError(f"Shared realtime inner PDF not found for innercode {innercode}: {source_path}")
 
         spine_code = make_safe_filename_part(group["spine_code"], innercode)
         size_folder = str(group["book_size"] or "").strip().upper() or "UNSPECIFIED"
-        output_path = binders_root / size_folder / f"{group['count']} copies {spine_code}.pdf"
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(source_path, output_path)
-
-
-def copy_nonp_inner_groups_to_binders(batch_id: int, nonp_groups: dict[str, dict]) -> None:
-    binders_root = resolve_inner_binders_root(batch_id)
-    binders_root.mkdir(parents=True, exist_ok=True)
-
-    for innercode, group in nonp_groups.items():
-        source_path = resolve_shared_inner_output(batch_id, innercode)
-        if not source_path.exists():
-            raise FileNotFoundError(f"Shared nonp inner PDF not found for innercode {innercode}: {source_path}")
-
-        spine_code = make_safe_filename_part(group["spine_code"], innercode)
-        size_folder = str(group["book_size"] or "").strip().upper() or "UNSPECIFIED"
-        output_path = binders_root / size_folder / f"{group['count']} copies {spine_code}.pdf"
+        output_path = binders_root / size_folder / f"{binder_number + 200}_{group['count']} copies {spine_code}.pdf"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source_path, output_path)
 
@@ -918,8 +937,8 @@ def make_inner_binder_filename(binder_number: int, binder_rows: list[sqlite3.Row
             unique_spines.append(spine_code)
 
     if unique_spines:
-        return f"INNER_{binder_number}_PER_{book_size}_{'-'.join(unique_spines)}.pdf"
-    return f"INNER_{binder_number}_PER_{book_size}.pdf"
+        return f"{binder_number}_INNER_PER_{book_size}_{'-'.join(unique_spines)}.pdf"
+    return f"{binder_number}_INNER_PER_{book_size}.pdf"
 
 
 def write_inner_binder(batch_id: int, binder_number: int, binder_rows: list[sqlite3.Row]) -> None:
@@ -1093,6 +1112,7 @@ def process_inner_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[
                     output_path,
                     str(row["innerqr"] or ""),
                     batch_id,
+                    str(row["spine_code"] or ""),
                 )
                 conn.execute(
                     """
@@ -1127,6 +1147,7 @@ def process_inner_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[
                     output_path,
                     str(row["innerqr"] or ""),
                     batch_id,
+                    str(row["spine_code"] or ""),
                 )
                 processed_nonp_innercodes.add(innercode)
                 generated += 1
@@ -1201,15 +1222,13 @@ def main() -> int:
             print("BookDetails is empty.", file=sys.stderr)
             return 1
 
-        realtime_inner_groups = collect_realtime_inner_groups(book_rows)
-        nonp_inner_groups = collect_nonp_inner_groups(book_rows)
+        shared_inner_groups = collect_shared_inner_groups(book_rows)
         cover_generated_count = process_cover_rows(batch_conn, args.batch_id, book_rows)
         cover_binder_count = process_cover_binders(args.registry_path, args.batch_id, book_rows)
         
         inner_generated_count = process_inner_rows(batch_conn, args.batch_id, book_rows)
         inner_binder_count = process_inner_binders(args.registry_path, args.batch_id, book_rows)
-        copy_realtime_inner_groups_to_binders(args.batch_id, realtime_inner_groups)
-        copy_nonp_inner_groups_to_binders(args.batch_id, nonp_inner_groups)
+        copy_shared_inner_groups_to_binders(args.batch_id, shared_inner_groups)
         
         batch_conn.commit()
     except Exception as error:

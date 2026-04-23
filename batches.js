@@ -29,6 +29,8 @@ let activeProductDetailsBatch = null;
 let detailedInfoBackdrop = null;
 let detailedInfoTitle = null;
 let detailedInfoBody = null;
+let activeDetailedInfoBatch = null;
+let activeDetailedInfoPayload = null;
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -274,7 +276,10 @@ const ensureDetailedInfoModal = () => {
     <div class="modal" style="max-width: 1200px; width: min(1200px, 94vw);">
       <div class="modal-header">
         <h3 id="detailed-info-title">Detailed batch info</h3>
-        <button class="ghost-button" id="detailed-info-close" type="button">Close</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="ghost-button" id="detailed-info-export-pdf" type="button">Export PDF</button>
+          <button class="ghost-button" id="detailed-info-close" type="button">Close</button>
+        </div>
       </div>
       <div class="modal-body" id="detailed-info-body"></div>
     </div>
@@ -283,6 +288,7 @@ const ensureDetailedInfoModal = () => {
   document.body.appendChild(detailedInfoBackdrop);
   detailedInfoTitle = document.getElementById("detailed-info-title");
   detailedInfoBody = document.getElementById("detailed-info-body");
+  const exportButton = document.getElementById("detailed-info-export-pdf");
   const closeButton = document.getElementById("detailed-info-close");
 
   const closeModal = () => {
@@ -290,6 +296,13 @@ const ensureDetailedInfoModal = () => {
   };
 
   closeButton?.addEventListener("click", closeModal);
+  exportButton?.addEventListener("click", () => {
+    if (!activeDetailedInfoBatch) {
+      setStatus("No detailed batch info available to export.", "error");
+      return;
+    }
+    exportDetailedBatchInfoPdf(activeDetailedInfoBatch, activeDetailedInfoPayload || {});
+  });
   detailedInfoBackdrop.addEventListener("click", (event) => {
     if (event.target === detailedInfoBackdrop) {
       closeModal();
@@ -322,19 +335,15 @@ const renderDetailedInfoTable = (headers, rows) => {
   `;
 };
 
-const renderDetailedBatchInfoModal = (batch, payload) => {
-  ensureDetailedInfoModal();
-  detailedInfoTitle.textContent = `Detailed batch info - ${batch.batchName}`;
+const buildDetailedBatchInfoMarkup = (payload) => {
   const schools = Array.isArray(payload?.schools) ? payload.schools : [];
   const totals = payload?.totals || {};
 
   if (!schools.length) {
-    detailedInfoBody.innerHTML = `<p class="helper-text">No prepared data found for this batch yet.</p>`;
-    detailedInfoBackdrop.classList.remove("hidden");
-    return;
+    return `<p class="helper-text">No prepared data found for this batch yet.</p>`;
   }
 
-  detailedInfoBody.innerHTML = `
+  return `
     <section class="table-card" style="margin-bottom: 16px;">
       <div class="table-header">
         <h3>Summary</h3>
@@ -368,12 +377,16 @@ const renderDetailedBatchInfoModal = (batch, payload) => {
         ).flatMap((classGroup) =>
           (Array.isArray(classGroup.students) ? classGroup.students : []).map((student) => [
             classGroup.class_name || classGroup.class_id || "-",
-            student.student_id || "-",
             student.student_name || "-",
-            student.order_details_id || "-",
-            student.assigned_number ?? "-",
           ])
         );
+        const studentCountRows = (Array.isArray(school.personalized_students_by_class)
+          ? school.personalized_students_by_class
+          : []
+        ).map((classGroup) => [
+          classGroup.class_name || classGroup.class_id || "-",
+          classGroup.student_count ?? (Array.isArray(classGroup.students) ? classGroup.students.length : 0),
+        ]);
 
         const nonpRows = (Array.isArray(school.nonp_quantity_by_class) ? school.nonp_quantity_by_class : []).map(
           (row) => [row.class_name || row.class_id || "-", row.quantity ?? 0]
@@ -390,8 +403,9 @@ const renderDetailedBatchInfoModal = (batch, payload) => {
             ${renderDetailedInfoTable(["Class", "Product", "Covercode", "Innercode"], productRows)}
 
             <h4 style="margin: 16px 0 8px 0;">Personalized students class wise</h4>
+            ${renderDetailedInfoTable(["Class", "Count"], studentCountRows)}
             ${renderDetailedInfoTable(
-              ["Class", "Student ID", "Student name", "Order detail ID", "Assigned #"],
+              ["Class", "Student name"],
               studentRows
             )}
 
@@ -402,7 +416,56 @@ const renderDetailedBatchInfoModal = (batch, payload) => {
       })
       .join("")}
   `;
+};
 
+const exportDetailedBatchInfoPdf = (batch, payload) => {
+  const printWindow = window.open("", "_blank", "width=1200,height=900");
+  if (!printWindow) {
+    setStatus("Popup blocked. Allow popups to export PDF.", "error");
+    return;
+  }
+
+  const title = `Detailed batch info - ${batch.batchName}`;
+  const cssHref = new URL("styles.css", window.location.href).href;
+  const contentHtml = buildDetailedBatchInfoMarkup(payload);
+
+  printWindow.document.open();
+  printWindow.document.write(`
+    <!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>${title}</title>
+        <link rel="stylesheet" href="${cssHref}" />
+        <style>
+          body { margin: 0; padding: 20px; background: #fff; }
+          .table-card { break-inside: avoid; page-break-inside: avoid; }
+          @media print {
+            body { padding: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <h2 style="margin: 0 0 12px 0;">${title}</h2>
+        ${contentHtml}
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+  }, 250);
+};
+
+const renderDetailedBatchInfoModal = (batch, payload) => {
+  ensureDetailedInfoModal();
+  activeDetailedInfoBatch = batch;
+  activeDetailedInfoPayload = payload || {};
+  detailedInfoTitle.textContent = `Detailed batch info - ${batch.batchName}`;
+  detailedInfoBody.innerHTML = buildDetailedBatchInfoMarkup(payload);
   detailedInfoBackdrop.classList.remove("hidden");
 };
 
@@ -820,6 +883,33 @@ const handleViewDetailedBatchInfo = async (batch) => {
   setStatus("Detailed batch info loaded.", "success");
 };
 
+const handleViewBatchStageStatus = async (batch) => {
+  setStatus("Loading batch stage status...", "neutral");
+  const result = await window.appBridge?.listBatchStageStatus?.({
+    batchId: batch.id,
+  });
+
+  if (!result?.ok) {
+    setStatus(result?.message || "Unable to load batch stage status.", "error");
+    return;
+  }
+
+  const data = result.data || {};
+  const message = [
+    `Batch: ${data.batch_name || batch.batchName}`,
+    `Status: ${data.status || "-"}`,
+    `Considered rows: ${data.considered_rows ?? 0}`,
+    `Excluded rows (inner/cover ends with s or b): ${data.excluded_rows ?? 0}`,
+    "",
+    `Lamination - Done: ${data.lamination_done ?? 0}, Pending: ${data.lamination_pending ?? 0}`,
+    `Composing - Done: ${data.composing_done ?? 0}, Pending: ${data.composing_pending ?? 0}`,
+    `Sorting - Done: ${data.sorting_done ?? 0}, Pending: ${data.sorting_pending ?? 0}`,
+  ].join("\n");
+
+  window.alert(message);
+  setStatus("Batch stage status loaded.", "success");
+};
+
 const handleMarkBatchComplete = async (batch) => {
   setStatus("Checking batch completion status...", "neutral");
   const preflight = await window.appBridge?.prepareBatchCompletion?.({
@@ -904,7 +994,7 @@ const renderTable = (rows, emptyMessage) => {
   if (!rows.length) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
-    cell.colSpan = 6;
+    cell.colSpan = 7;
     cell.className = "empty-state";
     cell.textContent = emptyMessage;
     row.appendChild(cell);
@@ -914,6 +1004,10 @@ const renderTable = (rows, emptyMessage) => {
 
   rows.forEach((batch) => {
     const row = document.createElement("tr");
+
+    const idCell = document.createElement("td");
+    idCell.textContent = batch.id;
+    row.appendChild(idCell);
 
     const nameCell = document.createElement("td");
     nameCell.textContent = batch.batchName;
@@ -956,6 +1050,13 @@ const renderTable = (rows, emptyMessage) => {
         className: "ghost-button",
         onClick: async () => {
           await handleViewDetailedBatchInfo(batch);
+        },
+      },
+      {
+        label: "Status",
+        className: "ghost-button",
+        onClick: async () => {
+          await handleViewBatchStageStatus(batch);
         },
       },
     ];
