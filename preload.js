@@ -29,5 +29,6 @@ contextBridge.exposeInMainWorld("appBridge", {
   prepareBatchCompletion: (payload) => ipcRenderer.invoke("prepare-batch-completion", payload),
   listBatchStageStatus: (payload) => ipcRenderer.invoke("list-batch-stage-status", payload),
   setBatchCompleted: (payload) => ipcRenderer.invoke("set-batch-completed", payload),
+  exportBatchBookDetailsExcel: (payload) => ipcRenderer.invoke("export-batch-bookdetails-excel", payload),
   deleteBatch: (batchId) => ipcRenderer.invoke("delete-batch", batchId),
 });

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
@@ -608,14 +608,15 @@ const isTruthyPersonalized = (value) => {
   return ["1", "true", "y", "yes"].includes(normalized);
 };
 
-const getQrPerDigit = ({ isCover, orderDetailsPersonalized, innercodePer }) => {
+const getQrPerDigit = ({ isCover, nonpOrder, innercodePer }) => {
   const normalizedPer = String(innercodePer || "").trim().toUpperCase();
+  const isOrderDetailsPersonalized = Number(nonpOrder || 0) === 0;
 
   if (!isCover) {
     return normalizedPer === "Y" ? "1" : "0";
   }
 
-  if (!isTruthyPersonalized(orderDetailsPersonalized)) {
+  if (!isOrderDetailsPersonalized) {
     return "0";
   }
 
@@ -624,7 +625,7 @@ const getQrPerDigit = ({ isCover, orderDetailsPersonalized, innercodePer }) => {
 
 const buildBookQrCode = ({
   isCover,
-  orderDetailsPersonalized,
+  nonpOrder,
   innercodePer,
   studentId,
   innercode,
@@ -635,7 +636,7 @@ const buildBookQrCode = ({
   assignedNumber,
 }) => {
   const normalizedPer = String(innercodePer || "").trim().toUpperCase();
-  const isOrderDetailsPersonalized = isTruthyPersonalized(orderDetailsPersonalized);
+  const isOrderDetailsPersonalized = Number(nonpOrder || 0) === 0;
   const normalizedStudentId = normalizeIdValue(studentId);
   const normalizedInnercode = normalizeIdValue(innercode);
   const normalizedSchoolId = normalizeIdValue(schoolId);
@@ -653,6 +654,7 @@ const buildBookQrCode = ({
       zeroPad(normalizedInnercode, 9),
       "00000",
       "000",
+      "000",
       "00000",
       zeroPad(normalizedLayerType, 2),
       "00000",
@@ -663,7 +665,7 @@ const buildBookQrCode = ({
   return [
     "01",
     isCover ? "1" : "0",
-    getQrPerDigit({ isCover, orderDetailsPersonalized, innercodePer }),
+    getQrPerDigit({ isCover, nonpOrder, innercodePer }),
     zeroPad(normalizedStudentId, 5).slice(0, 2),
     zeroPad(normalizedInnercode, 9),
     zeroPad(normalizedSchoolId, 5),
@@ -1173,7 +1175,7 @@ const constructBookDetails = ({ batchId }) => {
         row.book_id = bookId;
         const coverqr = buildBookQrCode({
           isCover: true,
-          orderDetailsPersonalized: row.order_details_personalized,
+          nonpOrder: row.nonp_order,
           innercodePer: row.personlized,
           studentId: row.student_id,
           innercode: row.innercode,
@@ -1185,7 +1187,7 @@ const constructBookDetails = ({ batchId }) => {
         });
         const innerqr = buildBookQrCode({
           isCover: false,
-          orderDetailsPersonalized: row.order_details_personalized,
+          nonpOrder: row.nonp_order,
           innercodePer: row.personlized,
           studentId: row.student_id,
           innercode: row.innercode,
@@ -1494,6 +1496,8 @@ const setBatchProcessing = ({ batchId }) => {
       WHERE id = ?
     `)
     .get(normalizedBatchId);
+  
+    
 
   if (!batch) {
     return { ok: false, message: "Batch not found." };
@@ -1840,6 +1844,84 @@ const setBatchCompleted = ({ batchId }) => {
       active: 0,
     },
   };
+};
+
+const escapeCsvCell = (value) => {
+  if (value === null || value === undefined) return "";
+  const text = String(value);
+  if (/[",\r\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+};
+
+const exportBatchBookDetailsExcel = async ({ batchId }) => {
+  const normalizedBatchId = Number(batchId);
+  if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
+    return { ok: false, message: "Invalid batch id." };
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const batch = registryDb
+    .prepare("SELECT id, batch_name, db_path FROM batches WHERE id = ?")
+    .get(normalizedBatchId);
+  if (!batch) {
+    return { ok: false, message: "Batch not found." };
+  }
+
+  let batchDb;
+  try {
+    batchDb = new Database(batch.db_path);
+    ensureBatchDbSchema(batchDb);
+
+    if (!tableExists(batchDb, "BookDetails")) {
+      return { ok: false, message: "BookDetails table does not exist. Construct book detail first." };
+    }
+
+    const columns = batchDb.prepare("PRAGMA table_info(BookDetails)").all();
+    if (!columns.length) {
+      return { ok: false, message: "BookDetails has no columns." };
+    }
+
+    const rows = batchDb.prepare("SELECT * FROM BookDetails ORDER BY id ASC").all();
+    const headers = columns.map((column) => String(column.name || "").trim()).filter(Boolean);
+    const lines = [headers.map((header) => escapeCsvCell(header)).join(",")];
+    rows.forEach((row) => {
+      lines.push(headers.map((header) => escapeCsvCell(row[header])).join(","));
+    });
+
+    const safeBatchName = String(batch.batch_name || `batch-${batch.id}`)
+      .trim()
+      .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
+    const defaultFileName = `${safeBatchName || `batch-${batch.id}`}-BookDetails.csv`;
+    const saveResult = await dialog.showSaveDialog({
+      title: "Export BookDetails to Excel-compatible CSV",
+      defaultPath: path.join(app.getPath("documents"), defaultFileName),
+      filters: [{ name: "CSV", extensions: ["csv"] }],
+    });
+    if (saveResult.canceled || !saveResult.filePath) {
+      return { ok: false, message: "Export cancelled." };
+    }
+
+    fs.writeFileSync(saveResult.filePath, `\uFEFF${lines.join("\r\n")}`, "utf8");
+    return {
+      ok: true,
+      data: {
+        batch_id: batch.id,
+        batch_name: batch.batch_name,
+        row_count: rows.length,
+        file_path: saveResult.filePath,
+      },
+    };
+  } catch (error) {
+    return { ok: false, message: error.message || "Unable to export BookDetails." };
+  } finally {
+    if (batchDb) {
+      batchDb.close();
+    }
+  }
 };
 
 const listBatchOrders = (batchId) => {
@@ -2994,6 +3076,13 @@ app.whenReady().then(() => {
       return setBatchCompleted(payload || {});
     } catch (error) {
       return { ok: false, message: error.message || "Unable to update batch status." };
+    }
+  });
+  ipcMain.handle("export-batch-bookdetails-excel", async (_event, payload) => {
+    try {
+      return await exportBatchBookDetailsExcel(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to export BookDetails." };
     }
   });
   ipcMain.handle("create-batch", (_event, batchName) => {

@@ -816,6 +816,9 @@ const handleRegenerateBooks = async (batch) => {
 };
 
 const handleSetBatchProcessing = async (batch) => {
+  
+  console.log(batch);
+  
   const result = await window.appBridge?.setBatchProcessing?.({
     batchId: batch.id,
   });
@@ -908,6 +911,23 @@ const handleViewBatchStageStatus = async (batch) => {
 
   window.alert(message);
   setStatus("Batch stage status loaded.", "success");
+};
+
+const handleExportBatchBookDetailsExcel = async (batch) => {
+  setStatus("Exporting BookDetails to Excel-compatible CSV...", "neutral");
+  const result = await window.appBridge?.exportBatchBookDetailsExcel?.({
+    batchId: batch.id,
+  });
+
+  if (!result?.ok) {
+    setStatus(result?.message || "Unable to export BookDetails.", "error");
+    return;
+  }
+
+  setStatus(
+    `Exported ${result.data?.row_count || 0} BookDetails rows to ${result.data?.file_path || "file"}.`,
+    "success"
+  );
 };
 
 const handleMarkBatchComplete = async (batch) => {
@@ -1057,6 +1077,13 @@ const renderTable = (rows, emptyMessage) => {
         className: "ghost-button",
         onClick: async () => {
           await handleViewBatchStageStatus(batch);
+        },
+      },
+      {
+        label: "Export BookDetails (Excel)",
+        className: "ghost-button",
+        onClick: async () => {
+          await handleExportBatchBookDetailsExcel(batch);
         },
       },
     ];
