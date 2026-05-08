@@ -12,7 +12,7 @@ VENDOR_DIR = SCRIPT_DIR / "vendor"
 if str(VENDOR_DIR) not in sys.path:
     sys.path.insert(0, str(VENDOR_DIR))
 
-from pypdf import PdfReader, PdfWriter, Transformation
+from pypdf import PdfReader, PdfWriter
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
@@ -39,11 +39,7 @@ STRIPE_WIDTH = 5 * MM_TO_PT
 STRIPE_HEIGHT = 15 * MM_TO_PT
 STRIPE_TOP_MARGIN_NEW = 7 * MM_TO_PT
 STRIPE_TOP_MARGIN =  15 * MM_TO_PT
-SIDE_STRIP_WIDTH = 12 * MM_TO_PT
-MEDIUM_SIDE_STRIP_HEIGHT = 290 * MM_TO_PT
-BIG_SIDE_STRIP_HEIGHT = 310 * MM_TO_PT
-MEDIUM_SIDE_STRIP_COLOR = colors.blue
-BIG_SIDE_STRIP_COLOR = colors.red
+
 COLOR_INDEX_MAP = {
     1: "#9A6324",
     2: "#e6194B",
@@ -141,33 +137,6 @@ def draw_cover_stripes(c: canvas.Canvas, page_width: float, page_height: float, 
     c.restoreState()
 
 
-def get_cover_side_strip_spec(book_size: str) -> tuple[float, colors.Color] | None:
-    normalized_size = str(book_size or "").strip().upper()
-    if normalized_size == "MEDIUM":
-        return MEDIUM_SIDE_STRIP_HEIGHT, MEDIUM_SIDE_STRIP_COLOR
-    if normalized_size == "BIG":
-        return BIG_SIDE_STRIP_HEIGHT, BIG_SIDE_STRIP_COLOR
-    return None
-
-
-def draw_cover_side_strips(c: canvas.Canvas, page_width: float, page_height: float, book_size: str) -> None:
-    strip_spec = get_cover_side_strip_spec(book_size)
-    if strip_spec is None:
-        return
-
-    strip_height, strip_color = strip_spec
-
-    strip_y = (page_height - strip_height) / 2
-    right_strip_x = max(page_width - SIDE_STRIP_WIDTH, 0)
-
-    c.saveState()
-    c.setLineWidth(0)
-    c.setFillColor(strip_color)
-    c.rect(0, strip_y, SIDE_STRIP_WIDTH, strip_height, stroke=0, fill=1)
-    c.rect(right_strip_x, strip_y, SIDE_STRIP_WIDTH, strip_height, stroke=0, fill=1)
-    c.restoreState()
-
-
 def draw_cover_qr(c: canvas.Canvas, page_width: float, page_height : float, qr_value: str) -> None:
     qr_image = make_qr_image_reader(qr_value)
     qr_x, qr_y = get_cover_qr_position(page_width, page_height)
@@ -225,11 +194,18 @@ def get_inner_qr_position(page_width: float) -> tuple[float, float]:
     return qr_x, QR_BOTTOM_MARGIN_NEW
 
 
-def draw_cover_book_id(c: canvas.Canvas, page_width: float, page_height: float, book_id: int) -> None:
+def draw_cover_book_id(
+    c: canvas.Canvas,
+    page_width: float,
+    page_height: float,
+    book_id: int,
+    text_color=colors.black,
+) -> None:
     center_x = page_width / 2 + (1 * MM_TO_PT)
     book_id_y = page_height * 0.80
     c.saveState()
     c.setFont("Helvetica-Bold", BOOK_ID_FONT_SIZE)
+    c.setFillColor(text_color)
     c.translate(center_x, book_id_y)
     c.rotate(90)
     c.drawCentredString(0, 0, str(book_id))
@@ -291,14 +267,6 @@ def draw_inner_spine_code_bottom(c: canvas.Canvas, page_width: float, page_heigh
     c.restoreState()
 
 
-def get_cover_canvas_size(page_width: float, page_height: float, book_size: str) -> tuple[float, float]:
-    strip_spec = get_cover_side_strip_spec(book_size)
-    if strip_spec is not None:
-        strip_height, _ = strip_spec
-        return page_width + (2 * SIDE_STRIP_WIDTH), max(page_height, strip_height)
-    return page_width, page_height
-
-
 def create_overlay_bytes(
     page_width: float,
     page_height: float,
@@ -319,12 +287,12 @@ def create_overlay_bytes(
     assigned_number=None,
     batch_id: int | None = None,
     include_batch_id: bool = False,
+    book_id_color=colors.black,
 ) -> bytes:
     packet = io.BytesIO()
     canvas_width, canvas_height = (page_width, page_height)
     c = canvas.Canvas(packet, pagesize=(canvas_width, canvas_height))
     if cover_mode:
-        draw_cover_side_strips(c, canvas_width, canvas_height, book_size)
         effective_content_width = float(content_page_width) if content_page_width is not None else page_width
         effective_content_height = float(content_page_height) if content_page_height is not None else page_height
         c.saveState()
@@ -341,7 +309,13 @@ def create_overlay_bytes(
                 cover_mode=True,
             )
         if include_book_id:
-            draw_cover_book_id(c, effective_content_width, effective_content_height, book_id)
+            draw_cover_book_id(
+                c,
+                effective_content_width,
+                effective_content_height,
+                book_id,
+                text_color=book_id_color,
+            )
         draw_cover_spine_code(c, effective_content_width, effective_content_height, spine_code)
         c.restoreState()
     else:
@@ -422,6 +396,7 @@ def merge_overlay(
     assigned_number=None,
     batch_id: int | None = None,
     include_batch_id: bool = False,
+    book_id_color=colors.black,
 ) -> None:
     page_width = float(page.mediabox.width)
     page_height = float(page.mediabox.height)
@@ -444,6 +419,7 @@ def merge_overlay(
         assigned_number=assigned_number,
         batch_id=batch_id,
         include_batch_id=include_batch_id,
+        book_id_color=book_id_color,
     )
     overlay_reader = PdfReader(io.BytesIO(overlay_bytes))
     page.merge_page(overlay_reader.pages[0])
@@ -479,6 +455,7 @@ def process_pdf(
     book_size: str = "",
     assigned_number=None,
     batch_id: int | None = None,
+    cover_book_id_color=colors.black,
 ) -> None:
     if not source_path.exists():
         raise FileNotFoundError(str(source_path))
@@ -499,26 +476,6 @@ def process_pdf(
         content_x_offset = 0.0
         content_y_offset = 0.0
         if is_first_page:
-            original_page = page
-            normalized_book_size = str(book_size or "").strip().upper()
-            if cover_mode and normalized_book_size in {"MEDIUM", "BIG"}:
-                original_width = float(original_page.mediabox.width)
-                original_height = float(original_page.mediabox.height)
-                expanded_width, expanded_height = get_cover_canvas_size(original_width, original_height, book_size)
-                content_page_width = original_width
-                content_page_height = original_height
-                content_x_offset = (expanded_width - original_width) / 2
-                content_y_offset = (expanded_height - original_height) / 2
-                expanded_page = writer.add_blank_page(width=expanded_width, height=expanded_height)
-                expanded_page.merge_transformed_page(
-                    original_page,
-                    Transformation().translate(
-                        tx=content_x_offset,
-                        ty=content_y_offset,
-                    ),
-                )
-                page = expanded_page
-                page_already_added = True
             merge_overlay(
                 page,
                 qr_value,
@@ -536,6 +493,7 @@ def process_pdf(
                 content_y_offset=content_y_offset,
                 assigned_number=assigned_number,
                 batch_id=batch_id,
+                book_id_color=cover_book_id_color,
             )
         elif is_last_page:
             merge_overlay(
@@ -763,10 +721,17 @@ def merge_pdfs(pdf_paths: list[Path], output_path: Path) -> None:
 
 def add_cover_binder_number(page: fitz.Page, binder_number: int) -> None:
     page.insert_text(
-        (10, page.rect.height / 2),
+        (10, page.rect.height / 4),
         str(binder_number),
         fontsize=10,
         color=(1, 1, 1),
+        rotate=90,
+    )
+    page.insert_text(
+        (10, page.rect.height * (3 / 4)),
+        str(binder_number),
+        fontsize=10,
+        color=(0, 0, 0),
         rotate=90,
     )
 
@@ -951,7 +916,7 @@ def write_inner_binder(batch_id: int, binder_number: int, binder_rows: list[sqli
 def process_inner_binders(registry_path: str, batch_id: int, book_rows: list[sqlite3.Row]) -> int:
     eligible_rows: list[sqlite3.Row] = []
     for row in book_rows:
-        if int(row["nonp_order"] or 0) == 1:
+        if int(row["nonp_order"] or 0) != 0:
             continue
         if str(row["personlized"] or "").strip().upper() != "Y":
             continue
@@ -1022,9 +987,12 @@ def process_cover_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[
             continue
 
         nonp_order = int(row["nonp_order"] or 0)
+        per_value = str(row["personlized"] or "").strip().upper()
         source_path = resolve_nonp_cover_source(row) if nonp_order == 1 else resolve_cover_source(row)
         if not source_path.exists():
             raise FileNotFoundError(f"Cover PDF not found for book_id {row['book_id']}: {source_path}")
+
+        cover_book_id_color = colors.red if per_value == "Y" and nonp_order == 0 else colors.green
 
         output_path = resolve_cover_output(batch_id, row["book_id"])
         process_pdf(
@@ -1040,6 +1008,7 @@ def process_cover_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[
             book_size=str(row["book_size"] or ""),
             assigned_number=row["assigned_number"],
             batch_id=batch_id,
+            cover_book_id_color=cover_book_id_color,
         )
         conn.execute(
             "UPDATE BookDetails SET cover_generated = 1 WHERE id = ?",
