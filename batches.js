@@ -31,6 +31,12 @@ let detailedInfoTitle = null;
 let detailedInfoBody = null;
 let activeDetailedInfoBatch = null;
 let activeDetailedInfoPayload = null;
+let moveOrderBackdrop = null;
+let moveOrderSelect = null;
+let moveOrderTitle = null;
+let moveOrderConfirmButton = null;
+let moveOrderCancelButton = null;
+let moveOrderResolve = null;
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -101,7 +107,7 @@ const createActionMenu = (label, items) => {
   items.forEach((item) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = `${item.className} menu-item`;
+    button.className = item.className ? `${item.className} menu-item` : "menu-item";
     button.textContent = item.label;
     button.disabled = Boolean(item.disabled);
     button.addEventListener("click", async () => {
@@ -147,6 +153,74 @@ const ensureProductDetailsModal = () => {
     if (event.target === productDetailsBackdrop) {
       closeModal();
     }
+  });
+};
+
+const ensureMoveOrderModal = () => {
+  if (moveOrderBackdrop) return;
+
+  moveOrderBackdrop = document.createElement("div");
+  moveOrderBackdrop.className = "modal-backdrop hidden";
+  moveOrderBackdrop.innerHTML = `
+    <div class="modal" style="max-width: 520px; width: min(520px, 92vw);">
+      <div class="modal-header">
+        <h3 id="move-order-title">Move order</h3>
+        <button class="ghost-button" id="move-order-cancel" type="button">Cancel</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row" style="align-items: flex-start; flex-direction: column; gap: 10px;">
+          <label for="move-order-target-batch">Select target batch (status: new)</label>
+          <select id="move-order-target-batch" class="text-input" style="width: 100%; min-width: 0;"></select>
+          <button class="primary-button" id="move-order-confirm" type="button">Move</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(moveOrderBackdrop);
+  moveOrderTitle = document.getElementById("move-order-title");
+  moveOrderSelect = document.getElementById("move-order-target-batch");
+  moveOrderConfirmButton = document.getElementById("move-order-confirm");
+  moveOrderCancelButton = document.getElementById("move-order-cancel");
+
+  const closeModal = (value = null) => {
+    moveOrderBackdrop.classList.add("hidden");
+    if (moveOrderResolve) {
+      const resolver = moveOrderResolve;
+      moveOrderResolve = null;
+      resolver(value);
+    }
+  };
+
+  moveOrderCancelButton?.addEventListener("click", () => closeModal(null));
+  moveOrderBackdrop.addEventListener("click", (event) => {
+    if (event.target === moveOrderBackdrop) {
+      closeModal(null);
+    }
+  });
+  moveOrderConfirmButton?.addEventListener("click", () => {
+    const value = Number(String(moveOrderSelect?.value || "").trim());
+    if (!Number.isInteger(value) || value <= 0) {
+      return;
+    }
+    closeModal(value);
+  });
+};
+
+const promptMoveOrderTargetBatch = (orderNumber, candidates) => {
+  ensureMoveOrderModal();
+  if (!moveOrderBackdrop || !moveOrderSelect || !moveOrderTitle) {
+    return Promise.resolve(null);
+  }
+
+  moveOrderTitle.textContent = `Move order ${orderNumber}`;
+  moveOrderSelect.innerHTML = candidates
+    .map((candidate) => `<option value="${candidate.id}">${candidate.id} - ${candidate.batchName}</option>`)
+    .join("");
+
+  moveOrderBackdrop.classList.remove("hidden");
+  return new Promise((resolve) => {
+    moveOrderResolve = resolve;
   });
 };
 
@@ -549,27 +623,81 @@ const buildBatchOrdersRow = (batch, orders) => {
       <td>${order.addedAt}</td>`;
 
     const actionCell = document.createElement("td");
-    if (batch.status === "new") {
-      actionCell.appendChild(
-        createActionMenu(`Open actions for order ${order.orderNumber}`, [
-          {
-            label: "Remove",
-            className: "danger-button",
-            onClick: async () => {
-              setStatus("Removing order from batch...", "neutral");
-              const result = await window.appBridge?.removeOrderFromBatch?.({
-                batchId: batch.id,
-                orderNumber: order.orderNumber,
-              });
-              if (result?.ok) {
-                setStatus("Order removed from batch.", "success");
-                await reloadExpandedBatchOrders(batch.id);
-                return;
-              }
-              setStatus(result?.message || "Unable to remove order from batch.", "error");
-            },
+    if (batch.status === "new" || batch.status === "building") {
+      const actionItems = [];
+      if (batch.status === "building") {
+        actionItems.push({
+          label: "Move To New Batch",
+          onClick: async () => {
+            setStatus("Loading available new batches...", "neutral");
+            const availableResult = await window.appBridge?.listAvailableBatches?.();
+            if (!availableResult?.ok) {
+              setStatus(availableResult?.message || "Unable to load available batches.", "error");
+              return;
+            }
+
+            const candidates = (Array.isArray(availableResult.data) ? availableResult.data : [])
+              .map((candidate) => normalizeBatch(candidate))
+              .filter((candidate) => Number(candidate.id) !== Number(batch.id) && candidate.status === "new");
+
+            if (!candidates.length) {
+              setStatus("No target batch with status 'new' is available.", "error");
+              return;
+            }
+
+            const targetBatchId = await promptMoveOrderTargetBatch(order.orderNumber, candidates);
+            if (!targetBatchId) {
+              return;
+            }
+            if (!candidates.some((candidate) => Number(candidate.id) === Number(targetBatchId))) {
+              setStatus("Invalid target batch id selected.", "error");
+              return;
+            }
+
+            setStatus("Moving order to selected new batch...", "neutral");
+            const result = await window.appBridge?.moveOrderToBatch?.({
+              orderNumber: order.orderNumber,
+              fromBatchId: batch.id,
+              toBatchId: targetBatchId,
+            });
+            if (!result?.ok) {
+              setStatus(result?.message || "Unable to move order to another batch.", "error");
+              return;
+            }
+            setStatus(
+              result?.message ||
+                `Order moved to batch ${result.data?.target_batch_name || targetBatchId}. Source batch data cleared for refetch.`,
+              "success"
+            );
+            await reloadExpandedBatchOrders(batch.id);
+            await refreshAllBatches();
           },
-        ])
+        });
+      }
+
+      if (batch.status === "new") {
+        actionItems.push({
+          label: "Delete",
+          className: "danger-button",
+          onClick: async () => {
+            setStatus("Removing order from batch...", "neutral");
+            const result = await window.appBridge?.removeOrderFromBatch?.({
+              batchId: batch.id,
+              orderNumber: order.orderNumber,
+            });
+            if (result?.ok) {
+              setStatus("Order removed from batch.", "success");
+              await reloadExpandedBatchOrders(batch.id);
+              await refreshAllBatches();
+              return;
+            }
+            setStatus(result?.message || "Unable to remove order from batch.", "error");
+          },
+        });
+      }
+
+      actionCell.appendChild(
+        createActionMenu(`Open actions for order ${order.orderNumber}`, actionItems)
       );
     } else {
       actionCell.textContent = "-";
@@ -733,6 +861,118 @@ const handleFetchAgain = async (batch) => {
 
   setStatus(
     `Batch data reset and prepared again. Students: ${refetchResult.data?.students_count || 0}, products: ${refetchResult.data?.products_count || 0}.`,
+    "success"
+  );
+  await refreshAllBatches();
+};
+
+const handleReSyncForBug = async (batch) => {
+  setStatus("Loading personalized orders for ReSyncForBug...", "neutral");
+  const personalizedOrdersResult = await window.appBridge?.listBatchPersonalizedOrderIds?.({
+    batchId: batch.id,
+  });
+  if (!personalizedOrdersResult?.ok) {
+    setStatus(personalizedOrdersResult?.message || "Unable to load personalized orders.", "error");
+    return;
+  }
+
+  const orderIds = Array.isArray(personalizedOrdersResult.data?.order_ids)
+    ? personalizedOrdersResult.data.order_ids
+    : [];
+  if (!orderIds.length) {
+    setStatus("No personalized orders found in this batch.", "error");
+    return;
+  }
+
+  setStatus("Fetching latest personalized students for ReSyncForBug...", "neutral");
+  const prepareResult = await callApi(API_ENDPOINTS.prepareBatchAnyStatus, {
+    order_ids: orderIds,
+  });
+  if (!prepareResult?.ok || !isPrepareSuccess(prepareResult.data)) {
+    setStatus(getPrepareMessage(prepareResult?.data, "ReSyncForBug fetch failed."), "error");
+    return;
+  }
+
+  
+  const compareResult = await window.appBridge?.comparePreparedStudentsMissing?.({
+    batchId: batch.id,
+    students: getPreparedStudents(prepareResult.data),
+  });
+  if (!compareResult?.ok) {
+    setStatus(compareResult?.message || "Unable to compare missing students.", "error");
+    return;
+  }
+
+  const data = compareResult.data || {};
+  const schoolLines = (Array.isArray(data.school_wise_missing) ? data.school_wise_missing : []).map(
+    (item) => `${item.school_name || item.school_id || "-"} (${item.school_id || "-"}) : ${item.missing_count || 0}`
+  );
+
+  const message = [
+    `Batch: ${data.batch_name || batch.batchName}`,
+    `Incoming unique students: ${data.incoming_students_unique_count ?? 0}`,
+    `Existing prepared unique students: ${data.prepared_students_unique_count ?? 0}`,
+    `Total missing kids: ${data.total_missing ?? 0}`,
+    "",
+    "School wise missing:",
+    ...(schoolLines.length ? schoolLines : ["None"]),
+  ].join("\n");
+
+  window.alert(message);
+
+  if (!(Number(data.total_missing) > 0)) {
+    setStatus("ReSyncForBug comparison completed. No missing students found.", "success");
+    return;
+  }
+
+  setStatus("Loading available target batches...", "neutral");
+  const availableResult = await window.appBridge?.listBatches?.();
+  if (!availableResult?.ok) {
+    setStatus(availableResult?.message || "Unable to load target batches.", "error");
+    return;
+  }
+
+  const candidates = (Array.isArray(availableResult.data) ? availableResult.data : [])
+    .map((candidate) => normalizeBatch(candidate))
+    .filter(
+      (candidate) =>
+        Number(candidate.id) !== Number(batch.id) &&
+        (candidate.status === "new" || candidate.status === "building")
+    );
+
+  if (!candidates.length) {
+    setStatus("No target batch with status 'new' or 'building' is available.", "error");
+    return;
+  }
+
+  const targetBatchId = await promptMoveOrderTargetBatch("ReSyncForBug missing students", candidates);
+  if (!targetBatchId) {
+    setStatus("ReSyncForBug add-to-batch cancelled.", "neutral");
+    return;
+  }
+  if (!candidates.some((candidate) => Number(candidate.id) === Number(targetBatchId))) {
+    setStatus("Invalid target batch id selected.", "error");
+    return;
+  }
+  
+  setStatus("Adding missing students to selected new batch...", "neutral");
+  const addResult = await window.appBridge?.addMissingPreparedStudentsToBatch?.({
+    sourceBatchId: batch.id,
+    targetBatchId,
+    students: getPreparedStudents(prepareResult.data),
+    classes: getPreparedClasses(prepareResult.data),
+    products: getPreparedProducts(prepareResult.data),
+    productDetails: getPreparedProductDetails(prepareResult.data),
+    nonpOrders: getPreparedNonpOrders(prepareResult.data),
+  });
+
+  if (!addResult?.ok) {
+    setStatus(addResult?.message || "Unable to add missing students to target batch.", "error");
+    return;
+  }
+
+  setStatus(
+    `Added missing students to batch ${addResult.data?.target_batch_name || targetBatchId}. Orders: ${addResult.data?.orders_count || 0}, students: ${addResult.data?.students_count || 0}, products: ${addResult.data?.products_count || 0}, product details: ${addResult.data?.product_details_count || 0}.`,
     "success"
   );
   await refreshAllBatches();
@@ -1056,6 +1296,13 @@ const renderTable = (rows, emptyMessage) => {
         className: "ghost-button",
         onClick: async () => {
           await toggleBatchOrders(batch.id);
+        },
+      },
+      {
+        label: "ReSyncForBug",
+        className: "ghost-button",
+        onClick: async () => {
+          await handleReSyncForBug(batch);
         },
       },
       {

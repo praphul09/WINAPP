@@ -3,4 +3,5 @@ SORTING_STATION/node_modules/
 book_generator/vendor/
 book_generator/__pycache__/
 *.pyc
-
+PROCESSING_MONITOR_NATIVE/
+SORTING_STATION/

@@ -4,7 +4,9 @@ import sqlite3
 import sys
 import shutil
 import math
+import os
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -39,6 +41,8 @@ STRIPE_WIDTH = 5 * MM_TO_PT
 STRIPE_HEIGHT = 15 * MM_TO_PT
 STRIPE_TOP_MARGIN_NEW = 7 * MM_TO_PT
 STRIPE_TOP_MARGIN =  15 * MM_TO_PT
+MAX_OUTPUT_FILENAME_LENGTH = 100
+LONG_FILENAME_SUFFIX = "_many_more.pdf"
 
 COLOR_INDEX_MAP = {
     1: "#9A6324",
@@ -52,8 +56,12 @@ COLOR_INDEX_MAP = {
     9: "#f032e6",
     10: "#ffe119",
     11: "#3cb44b",
-    12: "#f58231",
+    12: "#4363d8",
 }
+
+
+def get_worker_count() -> int:
+    return max(4, min(32, (os.cpu_count() or 1) * 4))
 
 
 def parse_args() -> argparse.Namespace:
@@ -116,7 +124,30 @@ def row_int(row: sqlite3.Row, key: str) -> int:
         raise ValueError(f"Invalid {key} value: {value}") from error
 
 
-def draw_cover_stripes(c: canvas.Canvas, page_width: float, page_height: float, colour1, colour2) -> None:
+def safe_output_filename(filename: str, max_length: int = MAX_OUTPUT_FILENAME_LENGTH) -> str:
+    value = str(filename or "").strip()
+    if not value:
+        return "output.pdf"
+
+    if len(value) <= max_length:
+        return value
+
+    suffix = LONG_FILENAME_SUFFIX
+    if max_length <= len(suffix):
+        return suffix[:max_length]
+
+    prefix_len = max_length - len(suffix)
+    return f"{value[:prefix_len]}{suffix}"
+
+
+def draw_cover_stripes(
+    c: canvas.Canvas,
+    page_width: float,
+    page_height: float,
+    colour1,
+    colour2,
+    assigned_number=None,
+) -> None:
     stripe_x = max((page_width - STRIPE_WIDTH) / 2, 0)
     
     if page_height > 291 * MM_TO_PT:
@@ -134,6 +165,16 @@ def draw_cover_stripes(c: canvas.Canvas, page_width: float, page_height: float, 
     c.rect(stripe_x, top_stripe_y, STRIPE_WIDTH, STRIPE_HEIGHT, stroke=0, fill=1)
     c.setFillColor(resolve_stripe_color(colour2))
     c.rect(stripe_x, middle_stripe_y, STRIPE_WIDTH, STRIPE_HEIGHT, stroke=0, fill=1)
+
+    slot = assigned_number_to_slot(assigned_number)
+    if slot is not None:
+        spine_dot_color = colors.HexColor(COLOR_INDEX_MAP[slot])
+        oval_width = 5 * MM_TO_PT
+        oval_height = 5 * MM_TO_PT
+        oval_x = max((page_width - oval_width) / 2, 0)
+        oval_y = max((page_height * 0.40) - (oval_height / 2), 0)
+        c.setFillColor(spine_dot_color)
+        c.ellipse(oval_x, oval_y, oval_x + oval_width, oval_y + oval_height, stroke=0, fill=1)
     c.restoreState()
 
 
@@ -251,6 +292,17 @@ def draw_cover_spine_code(c: canvas.Canvas, page_width: float, page_height: floa
     c.restoreState()
 
 
+def draw_cover_school_name(c: canvas.Canvas, school_name: str) -> None:
+    value = str(school_name or "").strip()
+    if not value:
+        return
+
+    c.saveState()
+    c.setFont("Helvetica-Bold", SLOT_LABEL_FONT_SIZE)
+    c.drawString(6 * MM_TO_PT, QR_BOTTOM_MARGIN_NEW, value)
+    c.restoreState()
+
+
 def draw_inner_spine_code_bottom(c: canvas.Canvas, page_width: float, page_height: float, spine_code: str) -> None:
     value = str(spine_code or "").strip()
     if not value:
@@ -288,6 +340,7 @@ def create_overlay_bytes(
     batch_id: int | None = None,
     include_batch_id: bool = False,
     book_id_color=colors.black,
+    school_name: str = "",
 ) -> bytes:
     packet = io.BytesIO()
     canvas_width, canvas_height = (page_width, page_height)
@@ -297,7 +350,14 @@ def create_overlay_bytes(
         effective_content_height = float(content_page_height) if content_page_height is not None else page_height
         c.saveState()
         c.translate(content_x_offset, content_y_offset)
-        draw_cover_stripes(c, effective_content_width, effective_content_height, colour1, colour2)
+        draw_cover_stripes(
+            c,
+            effective_content_width,
+            effective_content_height,
+            colour1,
+            colour2,
+            assigned_number=assigned_number,
+        )
         if include_qr:
             draw_cover_qr(c, effective_content_width, effective_content_height, qr_value)
             draw_cover_slot_label(c, effective_content_width, effective_content_height, assigned_number)
@@ -316,6 +376,7 @@ def create_overlay_bytes(
                 book_id,
                 text_color=book_id_color,
             )
+        draw_cover_school_name(c, school_name)
         draw_cover_spine_code(c, effective_content_width, effective_content_height, spine_code)
         c.restoreState()
     else:
@@ -397,6 +458,7 @@ def merge_overlay(
     batch_id: int | None = None,
     include_batch_id: bool = False,
     book_id_color=colors.black,
+    school_name: str = "",
 ) -> None:
     page_width = float(page.mediabox.width)
     page_height = float(page.mediabox.height)
@@ -420,6 +482,7 @@ def merge_overlay(
         batch_id=batch_id,
         include_batch_id=include_batch_id,
         book_id_color=book_id_color,
+        school_name=school_name,
     )
     overlay_reader = PdfReader(io.BytesIO(overlay_bytes))
     page.merge_page(overlay_reader.pages[0])
@@ -456,6 +519,7 @@ def process_pdf(
     assigned_number=None,
     batch_id: int | None = None,
     cover_book_id_color=colors.black,
+    school_name: str = "",
 ) -> None:
     if not source_path.exists():
         raise FileNotFoundError(str(source_path))
@@ -494,6 +558,7 @@ def process_pdf(
                 assigned_number=assigned_number,
                 batch_id=batch_id,
                 book_id_color=cover_book_id_color,
+                school_name=school_name,
             )
         elif is_last_page:
             merge_overlay(
@@ -703,13 +768,23 @@ def get_pdf_page_count(pdf_path: Path) -> int:
     return len(reader.pages)
 
 
-def merge_pdfs(pdf_paths: list[Path], output_path: Path) -> None:
+def merge_pdfs(
+    pdf_paths: list[Path],
+    output_path: Path,
+    *,
+    reverse_pdf_order: bool = False,
+    reverse_pages_in_each_pdf: bool = False,
+) -> None:
     merged = fitz.open()
     try:
-        for pdf_path in pdf_paths:
+        path_iterable = reversed(pdf_paths) if reverse_pdf_order else pdf_paths
+        for pdf_path in path_iterable:
             source = fitz.open(str(pdf_path))
             try:
-                merged.insert_pdf(source)
+                if reverse_pages_in_each_pdf and source.page_count > 0:
+                    merged.insert_pdf(source, from_page=source.page_count - 1, to_page=0)
+                else:
+                    merged.insert_pdf(source)
             finally:
                 source.close()
 
@@ -812,14 +887,26 @@ def make_binder_filename(binder_number: int, binder_groups: list[dict]) -> str:
             unique_spines.append(spine_code)
 
     if unique_spines:
-        return f"{binder_number}_{per_label}_{'-'.join(unique_spines)}.pdf"
-    return f"{binder_number}_{per_label}.pdf"
+        raw_name = f"{binder_number}_{per_label}_{'-'.join(unique_spines)}.pdf"
+    else:
+        raw_name = f"{binder_number}_{per_label}.pdf"
+    return safe_output_filename(raw_name)
 
 
-def write_cover_binder(batch_id: int, binder_number: int, binder_groups: list[dict]) -> None:
+def write_cover_binder(
+    batch_id: int,
+    binder_number: int,
+    binder_groups: list[dict],
+    *,
+    reverse_within_binder: bool = False,
+) -> None:
     pdf_paths: list[Path] = []
-    for group in binder_groups:
-        pdf_paths.extend(group["pdf_paths"])
+    group_iterable = reversed(binder_groups) if reverse_within_binder else binder_groups
+    for group in group_iterable:
+        group_pdf_paths = list(group["pdf_paths"])
+        if reverse_within_binder:
+            group_pdf_paths.reverse()
+        pdf_paths.extend(group_pdf_paths)
 
     size_folder = str(binder_groups[0]["book_size"] or "").strip().upper() or "UNSPECIFIED"
     output_path = resolve_binders_root(batch_id) / size_folder / make_cover_filename(binder_number, binder_groups)
@@ -839,8 +926,7 @@ def process_cover_binders(registry_path: str, batch_id: int, book_rows: list[sql
 
     binder_groups: list[dict] = []
     binder_pages = 0
-    binder_number = 1
-    binder_count = 0
+    planned_binders: list[list[dict]] = []
 
     for group in cover_groups:
         if not binder_groups:
@@ -860,15 +946,21 @@ def process_cover_binders(registry_path: str, batch_id: int, book_rows: list[sql
             binder_pages = combined_pages
             continue
 
-        write_cover_binder(batch_id, binder_number, binder_groups)
-        binder_count += 1
-        binder_number += 1
+        planned_binders.append(list(binder_groups))
         binder_groups = [group]
         binder_pages = group["page_count"]
 
     if binder_groups:
-        write_cover_binder(batch_id, binder_number, binder_groups)
-        binder_count += 1
+        planned_binders.append(list(binder_groups))
+
+    binder_count = len(planned_binders)
+    for binder_number, groups in enumerate(reversed(planned_binders), start=1):
+        write_cover_binder(
+            batch_id,
+            binder_number,
+            groups,
+            reverse_within_binder=True,
+        )
 
     registry_conn = sqlite3.connect(registry_path)
     try:
@@ -893,7 +985,7 @@ def get_inner_binder_limit(binder_number: int) -> int:
     return 500
 
 
-def make_inner_binder_filename(binder_number: int, binder_rows: list[sqlite3.Row]) -> str:
+def make_inner_binder_filename(batch_id: int, binder_number: int, binder_rows: list[sqlite3.Row]) -> str:
     book_size = str(binder_rows[0]["book_size"] or "").strip().upper() if binder_rows else ""
     spine_codes = [str(row["spine_code"] or "").strip() for row in binder_rows if str(row["spine_code"] or "").strip()]
     unique_spines: list[str] = []
@@ -902,15 +994,34 @@ def make_inner_binder_filename(binder_number: int, binder_rows: list[sqlite3.Row
             unique_spines.append(spine_code)
 
     if unique_spines:
-        return f"{binder_number}_INNER_PER_{book_size}_{'-'.join(unique_spines)}.pdf"
-    return f"{binder_number}_INNER_PER_{book_size}.pdf"
+        raw_name = f"{binder_number}_INNER_PER_{book_size}_{'-'.join(unique_spines)}_BT{batch_id}.pdf"
+    else:
+        raw_name = f"{binder_number}_INNER_PER_{book_size}_BT{batch_id}.pdf"
+    return safe_output_filename(raw_name)
 
 
-def write_inner_binder(batch_id: int, binder_number: int, binder_rows: list[sqlite3.Row]) -> None:
+def write_inner_binder(
+    batch_id: int,
+    binder_number: int,
+    binder_rows: list[sqlite3.Row],
+    *,
+    reverse_within_binder: bool = False,
+    reverse_pages_in_each_pdf: bool = False,
+) -> None:
     pdf_paths = [resolve_inner_output(batch_id, row["book_id"]) for row in binder_rows]
+    if reverse_within_binder:
+        pdf_paths.reverse()
     size_folder = str(binder_rows[0]["book_size"] or "").strip().upper() or "UNSPECIFIED"
-    output_path = resolve_inner_binders_root(batch_id) / size_folder / make_inner_binder_filename(binder_number, binder_rows)
-    merge_pdfs(pdf_paths, output_path)
+    output_path = resolve_inner_binders_root(batch_id) / size_folder / make_inner_binder_filename(
+        batch_id,
+        binder_number,
+        binder_rows,
+    )
+    merge_pdfs(
+        pdf_paths,
+        output_path,
+        reverse_pages_in_each_pdf=reverse_pages_in_each_pdf,
+    )
 
 
 def process_inner_binders(registry_path: str, batch_id: int, book_rows: list[sqlite3.Row]) -> int:
@@ -935,13 +1046,13 @@ def process_inner_binders(registry_path: str, batch_id: int, book_rows: list[sql
 
     binder_rows: list[sqlite3.Row] = []
     binder_pages = 0
-    binder_number = 1
-    binder_count = 0
+    planned_binders: list[list[sqlite3.Row]] = []
 
     for row in eligible_rows:
         row_path = resolve_inner_output(batch_id, row["book_id"])
         row_pages = get_pdf_page_count(row_path)
-        limit = get_inner_binder_limit(binder_number)
+        current_binder_number = len(planned_binders) + 1
+        limit = get_inner_binder_limit(current_binder_number)
 
         if not binder_rows:
             binder_rows = [row]
@@ -957,15 +1068,22 @@ def process_inner_binders(registry_path: str, batch_id: int, book_rows: list[sql
             binder_pages += row_pages
             continue
 
-        write_inner_binder(batch_id, binder_number, binder_rows)
-        binder_count += 1
-        binder_number += 1
+        planned_binders.append(list(binder_rows))
         binder_rows = [row]
         binder_pages = row_pages
 
     if binder_rows:
-        write_inner_binder(batch_id, binder_number, binder_rows)
-        binder_count += 1
+        planned_binders.append(list(binder_rows))
+
+    binder_count = len(planned_binders)
+    for binder_number, rows in enumerate(reversed(planned_binders), start=1):
+        write_inner_binder(
+            batch_id,
+            binder_number,
+            rows,
+            reverse_within_binder=True,
+            reverse_pages_in_each_pdf=True,
+        )
 
     registry_conn = sqlite3.connect(registry_path)
     try:
@@ -981,11 +1099,13 @@ def process_inner_binders(registry_path: str, batch_id: int, book_rows: list[sql
 
 
 def process_cover_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[sqlite3.Row]) -> int:
-    generated = 0
+    tasks: list[sqlite3.Row] = []
     for row in book_rows:
         if bool(row["cover_generated"]) or should_skip_code(row["covercode"]):
             continue
+        tasks.append(row)
 
+    def run_cover(row: sqlite3.Row) -> int:
         nonp_order = int(row["nonp_order"] or 0)
         per_value = str(row["personlized"] or "").strip().upper()
         source_path = resolve_nonp_cover_source(row) if nonp_order == 1 else resolve_cover_source(row)
@@ -1009,58 +1129,42 @@ def process_cover_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[
             assigned_number=row["assigned_number"],
             batch_id=batch_id,
             cover_book_id_color=cover_book_id_color,
+            school_name=str(row["school_name"] or ""),
         )
-        conn.execute(
-            "UPDATE BookDetails SET cover_generated = 1 WHERE id = ?",
-            (row["id"],),
-        )
-        conn.commit()
-        generated += 1
+        return int(row["id"])
+
+    generated = 0
+    with ThreadPoolExecutor(max_workers=get_worker_count()) as executor:
+        futures = [executor.submit(run_cover, row) for row in tasks]
+        for future in as_completed(futures):
+            row_id = future.result()
+            conn.execute(
+                "UPDATE BookDetails SET cover_generated = 1 WHERE id = ?",
+                (row_id,),
+            )
+            conn.commit()
+            generated += 1
 
     return generated
 
 
 def process_inner_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[sqlite3.Row]) -> int:
     generated = 0
-    processed_realtime_innercodes: set[str] = set()
-    processed_nonp_innercodes: set[str] = set()
+    generated_row_tasks: list[sqlite3.Row] = []
+    generated_realtime_by_innercode: dict[str, sqlite3.Row] = {}
+    generated_nonp_by_innercode: dict[str, sqlite3.Row] = {}
+    mark_inner_generated_row_ids: list[int] = []
+
     for row in book_rows:
         if bool(row["inner_generated"]) or endswith_code(row["innercode"], "b"):
             continue
 
         if endswith_code(row["innercode"], "s"):
             nonp_order = int(row["nonp_order"] or 0)
-            
             if nonp_order == 1:
-                conn.execute(
-                    "UPDATE BookDetails SET inner_generated = 1 WHERE id = ?",
-                    (row["id"],),
-                )
-                conn.commit()
+                mark_inner_generated_row_ids.append(int(row["id"]))
                 continue
-            
-            source_path = resolve_nonp_inner_source(row) if nonp_order == 1 else resolve_inner_source(row)
-            if not source_path.exists():
-                raise FileNotFoundError(f"Sticker PDF not found for book_id {row['book_id']}: {source_path}")
-
-            
-            output_path = resolve_sticker_output(batch_id, row["book_id"])
-            
-            if nonp_order == 1:
-                lines = [
-                    f"School: {row['school_name'] or ''}"
-                ]
-            else:
-                lines = [
-                    f"School: {row['school_name'] or ''} Student: {row['student_name'] or ''} {row_int(row, 'student_id')}"
-                ]
-            process_sticker_pdf(source_path, output_path, lines)
-            conn.execute(
-                "UPDATE BookDetails SET inner_generated = 1 WHERE id = ?",
-                (row["id"],),
-            )
-            conn.commit()
-            generated += 1
+            generated_row_tasks.append(row)
             continue
 
         per_value = str(row["personlized"] or "").strip().upper()
@@ -1070,73 +1174,36 @@ def process_inner_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[
         if per_value != "Y":
             if real_time_print == "Y":
                 innercode = str(row["innercode"] or "").strip()
-                if innercode in processed_realtime_innercodes:
-                    continue
-                source_path = resolve_static_inner_source(row)
-                if not source_path.exists():
-                    raise FileNotFoundError(f"Inner source PDF not found for book_id {row['book_id']}: {source_path}")
-                output_path = resolve_shared_inner_output(batch_id, innercode)
-                process_shared_inner_pdf(
-                    source_path,
-                    output_path,
-                    str(row["innerqr"] or ""),
-                    batch_id,
-                    str(row["spine_code"] or ""),
-                )
-                conn.execute(
-                    """
-                    UPDATE BookDetails
-                    SET inner_generated = 1
-                    WHERE innercode = ?
-                      AND UPPER(TRIM(COALESCE(personlized, ''))) != 'Y'
-                      AND UPPER(TRIM(COALESCE(real_time_print, ''))) = 'Y'
-                    """,
-                    (innercode,),
-                )
-                conn.commit()
-                processed_realtime_innercodes.add(innercode)
-                generated += 1
+                if innercode not in generated_realtime_by_innercode:
+                    generated_realtime_by_innercode[innercode] = row
             else:
-                conn.execute(
-                    "UPDATE BookDetails SET inner_generated = 1 WHERE id = ?",
-                    (row["id"],),
-                )
-                conn.commit()
+                mark_inner_generated_row_ids.append(int(row["id"]))
             continue
 
         if nonp_order == 1:
             innercode = str(row["innercode"] or "").strip()
-            source_path = resolve_nonp_inner_source(row)
-            if not source_path.exists():
-                raise FileNotFoundError(f"Nonp inner source PDF not found for book_id {row['book_id']}: {source_path}")
-            if innercode not in processed_nonp_innercodes:
-                output_path = resolve_shared_inner_output(batch_id, innercode)
-                process_shared_inner_pdf(
-                    source_path,
-                    output_path,
-                    str(row["innerqr"] or ""),
-                    batch_id,
-                    str(row["spine_code"] or ""),
-                )
-                processed_nonp_innercodes.add(innercode)
-                generated += 1
-            conn.execute(
-                """
-                UPDATE BookDetails
-                SET inner_generated = 1
-                WHERE innercode = ?
-                  AND nonp_order = 1
-                """,
-                (innercode,),
-            )
-            conn.commit()
+            if innercode not in generated_nonp_by_innercode:
+                generated_nonp_by_innercode[innercode] = row
             continue
 
-        source_path = resolve_inner_source(row)
+        generated_row_tasks.append(row)
 
+    def run_inner_row(row: sqlite3.Row) -> tuple[str, int]:
+        if endswith_code(row["innercode"], "s"):
+            nonp_order = int(row["nonp_order"] or 0)
+            source_path = resolve_nonp_inner_source(row) if nonp_order == 1 else resolve_inner_source(row)
+            if not source_path.exists():
+                raise FileNotFoundError(f"Sticker PDF not found for book_id {row['book_id']}: {source_path}")
+            output_path = resolve_sticker_output(batch_id, row["book_id"])
+            lines = [
+                f"School: {row['school_name'] or ''} Student: {row['student_name'] or ''} {row_int(row, 'student_id')}"
+            ]
+            process_sticker_pdf(source_path, output_path, lines)
+            return "row", int(row["id"])
+
+        source_path = resolve_inner_source(row)
         if not source_path.exists():
             raise FileNotFoundError(f"Inner PDF not found for book_id {row['book_id']}: {source_path}")
-        
         output_path = resolve_inner_output(batch_id, row["book_id"])
         process_pdf(
             source_path,
@@ -1146,12 +1213,78 @@ def process_inner_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[
             place_book_id_on_last_page=True,
             batch_id=batch_id,
         )
-        conn.execute(
-            "UPDATE BookDetails SET inner_generated = 1 WHERE id = ?",
-            (row["id"],),
+        return "row", int(row["id"])
+
+    def run_inner_realtime_shared(innercode: str, row: sqlite3.Row) -> tuple[str, str]:
+        source_path = resolve_static_inner_source(row)
+        if not source_path.exists():
+            raise FileNotFoundError(f"Inner source PDF not found for book_id {row['book_id']}: {source_path}")
+        output_path = resolve_shared_inner_output(batch_id, innercode)
+        process_shared_inner_pdf(
+            source_path,
+            output_path,
+            str(row["innerqr"] or ""),
+            batch_id,
+            str(row["spine_code"] or ""),
         )
+        return "realtime", innercode
+
+    def run_inner_nonp_shared(innercode: str, row: sqlite3.Row) -> tuple[str, str]:
+        source_path = resolve_nonp_inner_source(row)
+        if not source_path.exists():
+            raise FileNotFoundError(f"Nonp inner source PDF not found for book_id {row['book_id']}: {source_path}")
+        output_path = resolve_shared_inner_output(batch_id, innercode)
+        process_shared_inner_pdf(
+            source_path,
+            output_path,
+            str(row["innerqr"] or ""),
+            batch_id,
+            str(row["spine_code"] or ""),
+        )
+        return "nonp", innercode
+
+    for row_id in mark_inner_generated_row_ids:
+        conn.execute("UPDATE BookDetails SET inner_generated = 1 WHERE id = ?", (row_id,))
         conn.commit()
-        generated += 1
+
+    futures = []
+    with ThreadPoolExecutor(max_workers=get_worker_count()) as executor:
+        for row in generated_row_tasks:
+            futures.append(executor.submit(run_inner_row, row))
+        for innercode, row in generated_realtime_by_innercode.items():
+            futures.append(executor.submit(run_inner_realtime_shared, innercode, row))
+        for innercode, row in generated_nonp_by_innercode.items():
+            futures.append(executor.submit(run_inner_nonp_shared, innercode, row))
+
+        for future in as_completed(futures):
+            task_type, value = future.result()
+            if task_type == "row":
+                conn.execute("UPDATE BookDetails SET inner_generated = 1 WHERE id = ?", (value,))
+                conn.commit()
+            elif task_type == "realtime":
+                conn.execute(
+                    """
+                    UPDATE BookDetails
+                    SET inner_generated = 1
+                    WHERE innercode = ?
+                      AND UPPER(TRIM(COALESCE(personlized, ''))) != 'Y'
+                      AND UPPER(TRIM(COALESCE(real_time_print, ''))) = 'Y'
+                    """,
+                    (value,),
+                )
+                conn.commit()
+            else:
+                conn.execute(
+                    """
+                    UPDATE BookDetails
+                    SET inner_generated = 1
+                    WHERE innercode = ?
+                      AND nonp_order = 1
+                    """,
+                    (value,),
+                )
+                conn.commit()
+            generated += 1
 
     return generated
 
@@ -1163,7 +1296,7 @@ def main() -> int:
     registry_conn.row_factory = sqlite3.Row
     try:
         batch_row = registry_conn.execute(
-            "SELECT id, batch_name, db_path FROM batches WHERE id = ?",
+            "SELECT id, batch_name, db_path, cover_binder_generated, inner_binder_generated FROM batches WHERE id = ?",
             (args.batch_id,),
         ).fetchone()
     finally:
@@ -1175,6 +1308,8 @@ def main() -> int:
 
     batch_name = batch_row["batch_name"] or args.batch_name
     batch_db_path = batch_row["db_path"]
+    cover_binder_generated_flag = int(batch_row["cover_binder_generated"] or 0)
+    inner_binder_generated_flag = int(batch_row["inner_binder_generated"] or 0)
 
     batch_conn = sqlite3.connect(batch_db_path)
     batch_conn.row_factory = sqlite3.Row
@@ -1193,10 +1328,16 @@ def main() -> int:
 
         shared_inner_groups = collect_shared_inner_groups(book_rows)
         cover_generated_count = process_cover_rows(batch_conn, args.batch_id, book_rows)
-        cover_binder_count = process_cover_binders(args.registry_path, args.batch_id, book_rows)
+        if cover_binder_generated_flag == 1:
+            cover_binder_count = 0
+        else:
+            cover_binder_count = process_cover_binders(args.registry_path, args.batch_id, book_rows)
         
         inner_generated_count = process_inner_rows(batch_conn, args.batch_id, book_rows)
-        inner_binder_count = process_inner_binders(args.registry_path, args.batch_id, book_rows)
+        if inner_binder_generated_flag == 1:
+            inner_binder_count = 0
+        else:
+            inner_binder_count = process_inner_binders(args.registry_path, args.batch_id, book_rows)
         copy_shared_inner_groups_to_binders(args.batch_id, shared_inner_groups)
         
         batch_conn.commit()

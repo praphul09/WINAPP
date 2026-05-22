@@ -16,6 +16,11 @@ contextBridge.exposeInMainWorld("appBridge", {
   listOrderBatchLinks: () => ipcRenderer.invoke("list-order-batch-links"),
   addOrderToBatch: (payload) => ipcRenderer.invoke("add-order-to-batch", payload),
   removeOrderFromBatch: (payload) => ipcRenderer.invoke("remove-order-from-batch", payload),
+  moveOrderToBatch: (payload) => ipcRenderer.invoke("move-order-to-batch", payload),
+  listBatchPersonalizedOrderIds: (payload) => ipcRenderer.invoke("list-batch-personalized-order-ids", payload),
+  comparePreparedStudentsMissing: (payload) => ipcRenderer.invoke("compare-prepared-students-missing", payload),
+  addMissingPreparedStudentsToBatch: (payload) =>
+    ipcRenderer.invoke("add-missing-prepared-students-to-batch", payload),
   finalizeBatchPreparation: (payload) => ipcRenderer.invoke("finalize-batch-preparation", payload),
   refetchAndPrepareBatch: (payload) => ipcRenderer.invoke("refetch-and-prepare-batch", payload),
   moveProductDetailToPrintLater: (payload) =>

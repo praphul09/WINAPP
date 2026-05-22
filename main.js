@@ -324,9 +324,12 @@ const normalizePreparedStudents = (students) =>
     }));
   });
 
-const assignPreparedStudentSlots = (students) => {
+const assignPreparedStudentSlots = (students, startBasketSlot = 0) => {
   const normalizedStudents = Array.isArray(students) ? students : [];
-  if (normalizedStudents.length > MAX_ASSIGNABLE_UNITS) {
+  const initialBasketSlot =
+    Number.isInteger(startBasketSlot) && startBasketSlot >= 0 ? startBasketSlot : 0;
+
+  if (initialBasketSlot * STUDENTS_PER_BASKET + normalizedStudents.length > MAX_ASSIGNABLE_UNITS) {
     return {
       ok: false,
       message: `Total students exceed capacity. Maximum allowed is ${MAX_ASSIGNABLE_UNITS}, received ${normalizedStudents.length}.`,
@@ -354,14 +357,14 @@ const assignPreparedStudentSlots = (students) => {
     0
   );
 
-  if (requiredBaskets > TOTAL_BASKETS) {
+  if (initialBasketSlot + requiredBaskets > TOTAL_BASKETS) {
     return {
       ok: false,
-      message: `School allocation exceeds capacity. Required baskets: ${requiredBaskets}, available baskets: ${TOTAL_BASKETS}.`,
+      message: `School allocation exceeds capacity. Required baskets: ${requiredBaskets}, available baskets: ${TOTAL_BASKETS - initialBasketSlot}.`,
     };
   }
 
-  let nextBasketSlot = 0;
+  let nextBasketSlot = initialBasketSlot;
   const assignedStudents = [];
   for (const group of schoolGroups) {
     for (let index = 0; index < group.students.length; index += 1) {
@@ -1945,6 +1948,373 @@ const listBatchOrders = (batchId) => {
     .all(batchId);
 };
 
+const listBatchPersonalizedOrderIds = ({ batchId }) => {
+  const normalizedBatchId = Number(batchId);
+  if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
+    return { ok: false, message: "Invalid batch id." };
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const batch = registryDb
+    .prepare("SELECT id, batch_name, db_path FROM batches WHERE id = ?")
+    .get(normalizedBatchId);
+  if (!batch) {
+    return { ok: false, message: "Batch not found." };
+  }
+
+  let batchDb;
+  try {
+    batchDb = new Database(batch.db_path);
+    ensureBatchDbSchema(batchDb);
+
+    const rows = batchDb
+      .prepare(
+        `
+          SELECT DISTINCT order_number
+          FROM orders
+          WHERE TRIM(COALESCE(CAST(personalized AS TEXT), '')) IN ('1', 'Y', 'y', 'true', 'TRUE')
+          ORDER BY order_number ASC
+        `
+      )
+      .all();
+
+    const orderIds = rows
+      .map((row) => normalizeIdValue(row?.order_number))
+      .filter(Boolean);
+
+    return {
+      ok: true,
+      data: {
+        batch_id: batch.id,
+        batch_name: batch.batch_name,
+        order_ids: orderIds,
+      },
+    };
+  } catch (error) {
+    return { ok: false, message: error.message || "Unable to load personalized orders for batch." };
+  } finally {
+    if (batchDb) batchDb.close();
+  }
+};
+
+const comparePreparedStudentsMissing = ({ batchId, students }) => {
+  const normalizedBatchId = Number(batchId);
+  if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
+    return { ok: false, message: "Invalid batch id." };
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const batch = registryDb
+    .prepare("SELECT id, batch_name, db_path FROM batches WHERE id = ?")
+    .get(normalizedBatchId);
+  if (!batch) {
+    return { ok: false, message: "Batch not found." };
+  }
+
+  const incomingStudentsRaw = Array.isArray(students) ? students : [];
+  const incomingStudents = normalizePreparedStudents(incomingStudentsRaw);
+  let batchDb;
+  try {
+    batchDb = new Database(batch.db_path);
+    ensureBatchDbSchema(batchDb);
+
+    const existingRows = batchDb
+      .prepare("SELECT school_id, student_id FROM prepared_students ORDER BY id ASC")
+      .all();
+
+    const existingKeys = new Set();
+    existingRows.forEach((row) => {
+      const schoolId = normalizeIdValue(row?.school_id);
+      const studentId = normalizeIdValue(row?.student_id);
+      if (!schoolId || !studentId) return;
+      existingKeys.add(`${schoolId}::${studentId}`);
+    });
+
+    const incomingUnique = new Map();
+    incomingStudents.forEach((row) => {
+      const schoolId = normalizeIdValue(row?.school_id);
+      const studentId = normalizeIdValue(row?.student_id);
+      if (!schoolId || !studentId) return;
+      const key = `${schoolId}::${studentId}`;
+      if (!incomingUnique.has(key)) {
+        incomingUnique.set(key, {
+          school_id: schoolId,
+          school_name: pickFirstValue(row?.school_name, schoolId),
+          student_id: studentId,
+        });
+      }
+    });
+
+    const schoolCounts = new Map();
+    let missingTotal = 0;
+    incomingUnique.forEach((row, key) => {
+      if (existingKeys.has(key)) return;
+      missingTotal += 1;
+      const schoolKey = row.school_id;
+      if (!schoolCounts.has(schoolKey)) {
+        schoolCounts.set(schoolKey, {
+          school_id: row.school_id,
+          school_name: row.school_name,
+          missing_count: 0,
+        });
+      }
+      schoolCounts.get(schoolKey).missing_count += 1;
+    });
+
+    const school_wise_missing = Array.from(schoolCounts.values()).sort((left, right) =>
+      pickFirstValue(left.school_name, left.school_id).localeCompare(
+        pickFirstValue(right.school_name, right.school_id)
+      )
+    );
+
+    return {
+      ok: true,
+      data: {
+        batch_id: batch.id,
+        batch_name: batch.batch_name,
+        incoming_students_unique_count: incomingUnique.size,
+        prepared_students_unique_count: existingKeys.size,
+        total_missing: missingTotal,
+        school_wise_missing,
+      },
+    };
+  } catch (error) {
+    return { ok: false, message: error.message || "Unable to compare missing prepared students." };
+  } finally {
+    if (batchDb) batchDb.close();
+  }
+};
+
+const addMissingPreparedStudentsToBatch = ({
+  sourceBatchId,
+  targetBatchId,
+  students,
+  classes,
+  products,
+  productDetails,
+  nonpOrders,
+}) => {
+  const normalizedSourceBatchId = Number(sourceBatchId);
+  const normalizedTargetBatchId = Number(targetBatchId);
+  if (!Number.isInteger(normalizedSourceBatchId) || normalizedSourceBatchId <= 0) {
+    return { ok: false, message: "Invalid source batch id." };
+  }
+  if (!Number.isInteger(normalizedTargetBatchId) || normalizedTargetBatchId <= 0) {
+    return { ok: false, message: "Invalid target batch id." };
+  }
+  if (normalizedSourceBatchId === normalizedTargetBatchId) {
+    return { ok: false, message: "Source and target batch cannot be the same." };
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const sourceBatch = registryDb
+    .prepare("SELECT id, batch_name, db_path FROM batches WHERE id = ?")
+    .get(normalizedSourceBatchId);
+  const targetBatch = registryDb
+    .prepare("SELECT id, batch_name, status, db_path FROM batches WHERE id = ?")
+    .get(normalizedTargetBatchId);
+
+  if (!sourceBatch) {
+    return { ok: false, message: "Source batch not found." };
+  }
+  if (!targetBatch) {
+    return { ok: false, message: "Target batch not found." };
+  }
+  if (targetBatch.status !== "new" && targetBatch.status !== "building") {
+    return { ok: false, message: "Only batches with status 'new' or 'building' can accept ReSyncForBug data." };
+  }
+
+  const incomingStudentsRaw = Array.isArray(students) ? students : [];
+  const incomingStudentsNormalized = normalizePreparedStudents(incomingStudentsRaw);
+  const incomingClasses = Array.isArray(classes) ? classes : [];
+  const incomingProducts = Array.isArray(products) ? products : [];
+  const incomingProductDetails = Array.isArray(productDetails) ? productDetails : [];
+  const incomingNonpOrders = Array.isArray(nonpOrders) ? nonpOrders : [];
+
+  const toStudentKey = (row) => {
+    const schoolId = normalizeIdValue(row?.school_id);
+    const studentId = normalizeIdValue(row?.student_id);
+    if (!schoolId || !studentId) return null;
+    return `${schoolId}::${studentId}`;
+  };
+
+  const toSchoolClassKey = (schoolId, classId) => {
+    if (!schoolId || !classId) return null;
+    return `${schoolId}::${classId}`;
+  };
+
+  let sourceBatchDb;
+  let targetBatchDb;
+  try {
+    sourceBatchDb = new Database(sourceBatch.db_path);
+    ensureBatchDbSchema(sourceBatchDb);
+    targetBatchDb = new Database(targetBatch.db_path);
+    ensureBatchDbSchema(targetBatchDb);
+
+    const existingRows = sourceBatchDb
+      .prepare("SELECT school_id, student_id FROM prepared_students ORDER BY id ASC")
+      .all();
+
+    const existingKeys = new Set();
+    existingRows.forEach((row) => {
+      const key = toStudentKey(row);
+      if (key) existingKeys.add(key);
+    });
+
+    const incomingByKey = new Map();
+    incomingStudentsNormalized.forEach((row) => {
+      const key = toStudentKey(row);
+      if (!key || incomingByKey.has(key)) return;
+      incomingByKey.set(key, row);
+    });
+
+    const missingStudentKeys = new Set();
+    incomingByKey.forEach((_row, key) => {
+      if (!existingKeys.has(key)) missingStudentKeys.add(key);
+    });
+
+    if (!missingStudentKeys.size) {
+      return { ok: false, message: "No missing students found to add." };
+    }
+
+    const missingStudentsNormalized = Array.from(incomingByKey.entries())
+      .filter(([key]) => missingStudentKeys.has(key))
+      .map(([, row]) => row);
+
+    const missingStudentsRaw = incomingStudentsRaw.filter((item) => {
+      const normalizedRows = normalizePreparedStudents([item]);
+      return normalizedRows.some((row) => {
+        const key = toStudentKey(row);
+        return Boolean(key && missingStudentKeys.has(key));
+      });
+    });
+
+    const missingSchoolIds = new Set();
+    const missingClassPairs = new Set();
+    missingStudentsNormalized.forEach((row) => {
+      const schoolId = normalizeIdValue(row?.school_id);
+      const classId = normalizeIdValue(row?.class_id);
+      if (schoolId) missingSchoolIds.add(schoolId);
+      const key = toSchoolClassKey(schoolId, classId);
+      if (key) missingClassPairs.add(key);
+    });
+
+    const filteredClasses = incomingClasses.filter((item) => {
+      const classId = normalizeIdValue(item?.id ?? item?.class_id);
+      const schoolId = normalizeIdValue(item?.school_id);
+      const key = toSchoolClassKey(schoolId, classId);
+      return Boolean(key && missingSchoolIds.has(schoolId) && missingClassPairs.has(key));
+    });
+
+    const filteredProducts = incomingProducts.filter((item) => {
+      const schoolId = normalizeIdValue(item?.school_id);
+      return Boolean(schoolId && missingSchoolIds.has(schoolId));
+    });
+
+    const filteredProductDetails = incomingProductDetails.filter((item) => {
+      const schoolId = normalizeIdValue(item?.school_id);
+      const classId = normalizeIdValue(item?.class_id);
+      const key = toSchoolClassKey(schoolId, classId);
+      return Boolean(key && missingSchoolIds.has(schoolId) && missingClassPairs.has(key));
+    });
+
+    const filteredNonpOrders = incomingNonpOrders.filter((item) => {
+      const schoolId = normalizeIdValue(item?.school_id);
+      const classId = normalizeIdValue(item?.class_id);
+      if (!(schoolId && missingSchoolIds.has(schoolId))) {
+        return false;
+      }
+      if (!classId) {
+        return true;
+      }
+      const key = toSchoolClassKey(schoolId, classId);
+      return Boolean(key && missingClassPairs.has(key));
+    });
+
+    const requiredOrderNumbers = new Set();
+    missingStudentsNormalized.forEach((row) => {
+      const orderNumber = normalizeIdValue(row?.order_details_id);
+      if (orderNumber) requiredOrderNumbers.add(orderNumber);
+    });
+
+    const sourceOrders = sourceBatchDb.prepare("SELECT * FROM orders ORDER BY id ASC").all();
+    const sourceOrderByNumber = new Map();
+    sourceOrders.forEach((row) => {
+      const orderNumber = normalizeIdValue(row?.order_number);
+      if (!orderNumber || sourceOrderByNumber.has(orderNumber)) return;
+      sourceOrderByNumber.set(orderNumber, row);
+    });
+
+    const missingOrderNumbers = Array.from(requiredOrderNumbers).filter(
+      (orderNumber) => !sourceOrderByNumber.has(orderNumber)
+    );
+    if (missingOrderNumbers.length) {
+      return {
+        ok: false,
+        message: `Missing source orders for order_details_id: ${missingOrderNumbers.slice(0, 10).join(", ")}${
+          missingOrderNumbers.length > 10 ? "..." : ""
+        }`,
+      };
+    }
+
+    const copiedAt = new Date().toISOString();
+    const insertTargetOrder = targetBatchDb.prepare(`
+      INSERT OR IGNORE INTO orders (
+        order_number, school_id, school_name, personalized, product_id, product_type, order_date, added_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    Array.from(requiredOrderNumbers).forEach((orderNumber) => {
+      const sourceOrderRow = sourceOrderByNumber.get(orderNumber);
+      insertTargetOrder.run(
+        sourceOrderRow?.order_number ?? null,
+        sourceOrderRow?.school_id ?? null,
+        sourceOrderRow?.school_name ?? null,
+        sourceOrderRow?.personalized ?? null,
+        sourceOrderRow?.product_id ?? null,
+        sourceOrderRow?.product_type ?? null,
+        sourceOrderRow?.order_date ?? null,
+        copiedAt
+      );
+    });
+
+    const result = finalizeBatchPreparation(
+      {
+        batchId: normalizedTargetBatchId,
+        students: missingStudentsRaw,
+        classes: filteredClasses,
+        products: filteredProducts,
+        productDetails: filteredProductDetails,
+        nonpOrders: filteredNonpOrders,
+      },
+      {
+        allowBuildingRefetch: targetBatch.status === "building",
+        appendExisting: targetBatch.status === "building",
+      }
+    );
+
+    if (!result?.ok) {
+      return result;
+    }
+
+    return {
+      ok: true,
+      data: {
+        ...result.data,
+        source_batch_id: sourceBatch.id,
+        source_batch_name: sourceBatch.batch_name,
+        target_batch_id: targetBatch.id,
+        target_batch_name: targetBatch.batch_name,
+        orders_count: requiredOrderNumbers.size,
+      },
+    };
+  } catch (error) {
+    return { ok: false, message: error.message || "Unable to add missing students to target batch." };
+  } finally {
+    if (sourceBatchDb) sourceBatchDb.close();
+    if (targetBatchDb) targetBatchDb.close();
+  }
+};
+
 const listBatchPreparedProductDetails = ({ batchId }) => {
   const normalizedBatchId = Number(batchId);
   if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
@@ -2660,6 +3030,168 @@ const removeOrderFromBatch = ({ orderNumber, batchId }) => {
   }
 };
 
+const moveOrderToBatch = ({ orderNumber, fromBatchId, toBatchId }) => {
+  const normalizedOrderNumber = String(orderNumber || "").trim();
+  const normalizedFromBatchId = Number(fromBatchId);
+  const normalizedToBatchId = Number(toBatchId);
+
+  if (!normalizedOrderNumber) {
+    return { ok: false, message: "Order number is required." };
+  }
+  if (!Number.isInteger(normalizedFromBatchId) || normalizedFromBatchId <= 0) {
+    return { ok: false, message: "Invalid source batch id." };
+  }
+  if (!Number.isInteger(normalizedToBatchId) || normalizedToBatchId <= 0) {
+    return { ok: false, message: "Invalid target batch id." };
+  }
+  if (normalizedFromBatchId === normalizedToBatchId) {
+    return { ok: false, message: "Source and target batch must be different." };
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const sourceBatch = registryDb
+    .prepare("SELECT id, batch_name, status, db_path FROM batches WHERE id = ?")
+    .get(normalizedFromBatchId);
+  if (!sourceBatch) return { ok: false, message: "Source batch not found." };
+  if (sourceBatch.status !== "building") {
+    return { ok: false, message: "Orders can be moved only from batches with status 'building'." };
+  }
+
+  const targetBatch = registryDb
+    .prepare("SELECT id, batch_name, status, db_path FROM batches WHERE id = ?")
+    .get(normalizedToBatchId);
+  if (!targetBatch) return { ok: false, message: "Target batch not found." };
+  if (targetBatch.status !== "new") {
+    return { ok: false, message: "Target batch must have status 'new'." };
+  }
+
+  const sourceOrderLink = registryDb
+    .prepare(
+      `
+        SELECT batch_id, order_number, school_id, school_name, order_date
+        FROM batch_orders
+        WHERE batch_id = ? AND order_number = ?
+      `
+    )
+    .get(normalizedFromBatchId, normalizedOrderNumber);
+  if (!sourceOrderLink) {
+    return { ok: false, message: "Order does not belong to the selected source batch." };
+  }
+
+  const existingInTarget = registryDb
+    .prepare("SELECT 1 FROM batch_orders WHERE batch_id = ? AND order_number = ?")
+    .get(normalizedToBatchId, normalizedOrderNumber);
+  if (existingInTarget) {
+    return { ok: false, message: "Order already exists in target batch." };
+  }
+
+  let sourceBatchDb;
+  let targetBatchDb;
+  const movedAt = new Date().toISOString();
+  try {
+    sourceBatchDb = new Database(sourceBatch.db_path);
+    targetBatchDb = new Database(targetBatch.db_path);
+    ensureBatchDbSchema(sourceBatchDb);
+    ensureBatchDbSchema(targetBatchDb);
+
+    const sourceOrderRow = sourceBatchDb
+      .prepare(
+        `
+          SELECT order_number, school_id, school_name, personalized, product_id, product_type, order_date
+          FROM orders
+          WHERE order_number = ?
+        `
+      )
+      .get(normalizedOrderNumber);
+    if (!sourceOrderRow) {
+      return { ok: false, message: "Order details not found in source batch database." };
+    }
+
+    const clearGeneratedTablesForRefetch = () => {
+      sourceBatchDb.prepare("DELETE FROM prepared_students").run();
+      sourceBatchDb.prepare("DELETE FROM prepared_classes").run();
+      sourceBatchDb.prepare("DELETE FROM prepared_products").run();
+      sourceBatchDb.prepare("DELETE FROM prepared_product_details").run();
+      sourceBatchDb.prepare("DELETE FROM nonp_orders").run();
+      sourceBatchDb.prepare("DELETE FROM nonp_order_assignments").run();
+      sourceBatchDb.prepare("DELETE FROM BookDetails").run();
+      sourceBatchDb.prepare("DELETE FROM school_student_books").run();
+    };
+
+    const transaction = registryDb.transaction(() => {
+      registryDb
+        .prepare("DELETE FROM batch_orders WHERE batch_id = ? AND order_number = ?")
+        .run(normalizedFromBatchId, normalizedOrderNumber);
+
+      registryDb
+        .prepare(
+          `
+            INSERT INTO batch_orders (batch_id, order_number, school_id, school_name, order_date, added_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `
+        )
+        .run(
+          normalizedToBatchId,
+          normalizedOrderNumber,
+          sourceOrderLink.school_id ?? null,
+          sourceOrderLink.school_name ?? null,
+          sourceOrderLink.order_date ?? null,
+          movedAt
+        );
+
+      sourceBatchDb.prepare("DELETE FROM orders WHERE order_number = ?").run(normalizedOrderNumber);
+      targetBatchDb
+        .prepare(
+          `
+            INSERT INTO orders (
+              order_number, school_id, school_name, personalized, product_id, product_type, order_date, added_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `
+        )
+        .run(
+          sourceOrderRow.order_number,
+          sourceOrderRow.school_id ?? null,
+          sourceOrderRow.school_name ?? null,
+          sourceOrderRow.personalized ?? null,
+          sourceOrderRow.product_id ?? null,
+          sourceOrderRow.product_type ?? null,
+          sourceOrderRow.order_date ?? null,
+          movedAt
+        );
+
+      clearGeneratedTablesForRefetch();
+
+      sourceBatchDb
+        .prepare("INSERT INTO batch_log (message, created_at) VALUES (?, ?)")
+        .run(
+          `Order ${normalizedOrderNumber} moved to batch ${targetBatch.batch_name}; source batch data cleared for refetch.`,
+          movedAt
+        );
+      targetBatchDb
+        .prepare("INSERT INTO batch_log (message, created_at) VALUES (?, ?)")
+        .run(`Order ${normalizedOrderNumber} moved from batch ${sourceBatch.batch_name}.`, movedAt);
+    });
+
+    transaction();
+    return {
+      ok: true,
+      data: {
+        order_number: normalizedOrderNumber,
+        source_batch_id: normalizedFromBatchId,
+        source_batch_name: sourceBatch.batch_name,
+        target_batch_id: normalizedToBatchId,
+        target_batch_name: targetBatch.batch_name,
+        moved_at: movedAt,
+      },
+    };
+  } catch (error) {
+    return { ok: false, message: error.message || "Unable to move order to another batch." };
+  } finally {
+    if (sourceBatchDb) sourceBatchDb.close();
+    if (targetBatchDb) targetBatchDb.close();
+  }
+};
+
 const finalizeBatchPreparation = (
   { batchId, students, classes, products, productDetails, nonpOrders },
   options = {}
@@ -2669,6 +3201,7 @@ const finalizeBatchPreparation = (
     return { ok: false, message: "Invalid batch id." };
   }
   const allowBuildingRefetch = Boolean(options.allowBuildingRefetch);
+  const appendExisting = Boolean(options.appendExisting);
 
   const registryDb = getBatchRegistryDb();
   const batch = registryDb
@@ -2681,6 +3214,9 @@ const finalizeBatchPreparation = (
   if (batch.status !== "new" && !(allowBuildingRefetch && batch.status === "building")) {
     return { ok: false, message: "Only batches with status 'new' can be prepared." };
   }
+  if (appendExisting && batch.status !== "building") {
+    return { ok: false, message: "Append mode is only supported for batches with status 'building'." };
+  }
 
   const preparedStudents = normalizePreparedStudents(students);
   const preparedClasses = normalizePreparedClasses(classes);
@@ -2691,8 +3227,38 @@ const finalizeBatchPreparation = (
   let assignedNonpOrderUnits;
   let allocationMeta;
   let nonpAllocationMeta;
+  let existingStudentsCount = 0;
+  let existingClassesCount = 0;
+  let existingProductsCount = 0;
+  let existingProductDetailsCount = 0;
+  let existingNonpOrdersCount = 0;
+  let existingNonpAssignmentsCount = 0;
+  let baseBasketSlot = 0;
+  let batchDb;
+  const preparedAt = new Date().toISOString();
   try {
-    const allocation = assignPreparedStudentSlots(preparedStudents);
+    batchDb = new Database(batch.db_path);
+    ensureBatchDbSchema(batchDb);
+
+    if (appendExisting) {
+      const maxStudentAssigned = Number(
+        batchDb.prepare("SELECT MAX(COALESCE(assigned_number, 0)) AS v FROM prepared_students").get()?.v || 0
+      );
+      const maxNonpAssigned = Number(
+        batchDb.prepare("SELECT MAX(COALESCE(assigned_number, 0)) AS v FROM nonp_order_assignments").get()?.v || 0
+      );
+      const maxAssigned = Math.max(maxStudentAssigned, maxNonpAssigned, 0);
+      baseBasketSlot = Math.ceil(maxAssigned / STUDENTS_PER_BASKET);
+
+      existingStudentsCount = Number(batchDb.prepare("SELECT COUNT(*) AS c FROM prepared_students").get()?.c || 0);
+      existingClassesCount = Number(batchDb.prepare("SELECT COUNT(*) AS c FROM prepared_classes").get()?.c || 0);
+      existingProductsCount = Number(batchDb.prepare("SELECT COUNT(*) AS c FROM prepared_products").get()?.c || 0);
+      existingProductDetailsCount = Number(batchDb.prepare("SELECT COUNT(*) AS c FROM prepared_product_details").get()?.c || 0);
+      existingNonpOrdersCount = Number(batchDb.prepare("SELECT COUNT(*) AS c FROM nonp_orders").get()?.c || 0);
+      existingNonpAssignmentsCount = Number(batchDb.prepare("SELECT COUNT(*) AS c FROM nonp_order_assignments").get()?.c || 0);
+    }
+
+    const allocation = assignPreparedStudentSlots(preparedStudents, baseBasketSlot);
     if (!allocation.ok) {
       return { ok: false, message: allocation.message };
     }
@@ -2711,13 +3277,8 @@ const finalizeBatchPreparation = (
   } catch (error) {
     return { ok: false, message: error.message || "Unable to assign bucket and basket values." };
   }
-  
-  let batchDb;
-  const preparedAt = new Date().toISOString();
-  try {
-    batchDb = new Database(batch.db_path);
-    ensureBatchDbSchema(batchDb);
 
+  try {
     const registryTransaction = registryDb.transaction(() => {
       registryDb
         .prepare(`
@@ -2731,12 +3292,14 @@ const finalizeBatchPreparation = (
     });
 
     const batchTransaction = batchDb.transaction(() => {
-      batchDb.prepare("DELETE FROM prepared_students").run();
-      batchDb.prepare("DELETE FROM prepared_classes").run();
-      batchDb.prepare("DELETE FROM prepared_products").run();
-      batchDb.prepare("DELETE FROM prepared_product_details").run();
-      batchDb.prepare("DELETE FROM nonp_orders").run();
-      batchDb.prepare("DELETE FROM nonp_order_assignments").run();
+      if (!appendExisting) {
+        batchDb.prepare("DELETE FROM prepared_students").run();
+        batchDb.prepare("DELETE FROM prepared_classes").run();
+        batchDb.prepare("DELETE FROM prepared_products").run();
+        batchDb.prepare("DELETE FROM prepared_product_details").run();
+        batchDb.prepare("DELETE FROM nonp_orders").run();
+        batchDb.prepare("DELETE FROM nonp_order_assignments").run();
+      }
       batchDb.prepare("DELETE FROM BookDetails").run();
       batchDb.prepare("DELETE FROM school_student_books").run();
 
@@ -2749,6 +3312,16 @@ const finalizeBatchPreparation = (
       `);
 
       assignedStudents.forEach((item) => {
+        if (
+          appendExisting &&
+          batchDb
+            .prepare(
+              "SELECT 1 FROM prepared_students WHERE school_id = ? AND student_id = ? AND COALESCE(order_details_id, '') = COALESCE(?, '')"
+            )
+            .get(item.school_id, item.student_id, item.order_details_id)
+        ) {
+          return;
+        }
         insertStudent.run(
           item.source_id,
           item.order_details_id,
@@ -2779,6 +3352,14 @@ const finalizeBatchPreparation = (
         VALUES (?, ?, ?, ?, ?)
       `);
       preparedClasses.forEach((item) => {
+        if (
+          appendExisting &&
+          batchDb
+            .prepare("SELECT 1 FROM prepared_classes WHERE school_id = ? AND class_id = ?")
+            .get(item.school_id, item.class_id)
+        ) {
+          return;
+        }
         insertClass.run(
           item.class_id,
           item.class_name,
@@ -2793,6 +3374,14 @@ const finalizeBatchPreparation = (
         VALUES (?, ?, ?, ?, ?)
       `);
       preparedProducts.forEach((item) => {
+        if (
+          appendExisting &&
+          batchDb
+            .prepare("SELECT 1 FROM prepared_products WHERE source_id = ? AND school_id = ?")
+            .get(item.source_id, item.school_id)
+        ) {
+          return;
+        }
         insertProduct.run(item.source_id, item.school_id, item.name, item.type, item.raw_json);
       });
 
@@ -2802,6 +3391,14 @@ const finalizeBatchPreparation = (
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `);
       preparedProductDetails.forEach((item) => {
+        if (
+          appendExisting &&
+          batchDb
+            .prepare("SELECT 1 FROM prepared_product_details WHERE source_id = ? AND school_id = ?")
+            .get(item.source_id, item.school_id)
+        ) {
+          return;
+        }
         insertProductDetail.run(
           item.source_id,
           item.product_id,
@@ -2820,6 +3417,14 @@ const finalizeBatchPreparation = (
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
       `);
       preparedNonpOrders.forEach((item) => {
+        if (
+          appendExisting &&
+          batchDb
+            .prepare("SELECT 1 FROM nonp_orders WHERE source_id = ? AND school_id = ?")
+            .get(item.source_id, item.school_id)
+        ) {
+          return;
+        }
         insertNonpOrder.run(
           item.source_id,
           item.order_details_id,
@@ -2838,6 +3443,16 @@ const finalizeBatchPreparation = (
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       assignedNonpOrderUnits.forEach((item) => {
+        if (
+          appendExisting &&
+          batchDb
+            .prepare(
+              "SELECT 1 FROM nonp_order_assignments WHERE nonp_order_source_id = ? AND unit_index = ? AND school_id = ?"
+            )
+            .get(item.nonp_order_source_id, item.unit_index, item.school_id)
+        ) {
+          return;
+        }
         insertNonpOrderAssignment.run(
           item.nonp_order_source_id,
           item.order_details_id,
@@ -2855,7 +3470,7 @@ const finalizeBatchPreparation = (
       batchDb
         .prepare("INSERT INTO batch_log (message, created_at) VALUES (?, ?)")
         .run(
-          `${allowBuildingRefetch ? "Batch fetched again and prepared" : "Batch prepared"} with ${assignedStudents.length} students, ${preparedClasses.length} classes, ${preparedProducts.length} products, ${preparedProductDetails.length} product details, ${preparedNonpOrders.length} nonp orders and ${assignedNonpOrderUnits.length} assigned nonp units. Buckets used: ${Math.ceil(nonpAllocationMeta.next_basket_slot / BASKETS_PER_BUCKET)}, baskets used: ${nonpAllocationMeta.next_basket_slot}.`,
+          `${appendExisting ? "Batch appended and prepared" : allowBuildingRefetch ? "Batch fetched again and prepared" : "Batch prepared"} with ${assignedStudents.length} students, ${preparedClasses.length} classes, ${preparedProducts.length} products, ${preparedProductDetails.length} product details, ${preparedNonpOrders.length} nonp orders and ${assignedNonpOrderUnits.length} assigned nonp units. Buckets used: ${Math.ceil(nonpAllocationMeta.next_basket_slot / BASKETS_PER_BUCKET)}, baskets used: ${nonpAllocationMeta.next_basket_slot}.`,
           preparedAt
         );
     });
@@ -2869,12 +3484,16 @@ const finalizeBatchPreparation = (
         batch_id: normalizedBatchId,
         batch_name: batch.batch_name,
         status: "building",
-        students_count: assignedStudents.length,
-        classes_count: preparedClasses.length,
-        products_count: preparedProducts.length,
-        product_details_count: preparedProductDetails.length,
-        nonp_orders_count: preparedNonpOrders.length,
-        nonp_order_units_count: assignedNonpOrderUnits.length,
+        students_count: appendExisting ? existingStudentsCount + assignedStudents.length : assignedStudents.length,
+        classes_count: appendExisting ? existingClassesCount + preparedClasses.length : preparedClasses.length,
+        products_count: appendExisting ? existingProductsCount + preparedProducts.length : preparedProducts.length,
+        product_details_count: appendExisting
+          ? existingProductDetailsCount + preparedProductDetails.length
+          : preparedProductDetails.length,
+        nonp_orders_count: appendExisting ? existingNonpOrdersCount + preparedNonpOrders.length : preparedNonpOrders.length,
+        nonp_order_units_count: appendExisting
+          ? existingNonpAssignmentsCount + assignedNonpOrderUnits.length
+          : assignedNonpOrderUnits.length,
         schools_count: allocationMeta.schools_count,
         buckets_used: Math.ceil(nonpAllocationMeta.next_basket_slot / BASKETS_PER_BUCKET),
         baskets_used: nonpAllocationMeta.next_basket_slot,
@@ -2959,6 +3578,27 @@ app.whenReady().then(() => {
       return { ok: false, message: error.message || "Unable to load batch orders." };
     }
   });
+  ipcMain.handle("list-batch-personalized-order-ids", (_event, payload) => {
+    try {
+      return listBatchPersonalizedOrderIds(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to load personalized orders for batch." };
+    }
+  });
+  ipcMain.handle("compare-prepared-students-missing", (_event, payload) => {
+    try {
+      return comparePreparedStudentsMissing(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to compare missing prepared students." };
+    }
+  });
+  ipcMain.handle("add-missing-prepared-students-to-batch", (_event, payload) => {
+    try {
+      return addMissingPreparedStudentsToBatch(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to add missing students to target batch." };
+    }
+  });
   ipcMain.handle("list-batch-prepared-product-details", (_event, payload) => {
     try {
       return listBatchPreparedProductDetails(payload || {});
@@ -2992,6 +3632,13 @@ app.whenReady().then(() => {
       return removeOrderFromBatch(payload || {});
     } catch (error) {
       return { ok: false, message: error.message || "Unable to remove order from batch." };
+    }
+  });
+  ipcMain.handle("move-order-to-batch", (_event, payload) => {
+    try {
+      return moveOrderToBatch(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to move order to another batch." };
     }
   });
   ipcMain.handle("finalize-batch-preparation", (_event, payload) => {

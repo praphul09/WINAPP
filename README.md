@@ -28,6 +28,22 @@ Prerequisite: Python must be available as `python` or `py -3`.
 npm start
 ```
 
+## Additional Subprojects
+
+### `SORTING_STATION`
+Separate Electron app for processing-stage sorting operations.
+
+### `PROCESSING_MONITOR_NATIVE`
+React Native subproject for viewing `processing` batches directly from the batch registry, including detailed batch info and stage status.
+
+Run from `f:/workspace/WINAPP/PROCESSING_MONITOR_NATIVE`:
+
+```bash
+npm install
+npm run api
+npm start
+```
+
 ## API Configuration
 The dashboard expects a backend API. Update endpoints in `f:/workspace/WINAPP/renderer.js`:
 

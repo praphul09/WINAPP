@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
   submitStudentDetails: "https://eshiksavikas.in/api/order-details/update-student",
   studentDetailsByOrders: "https://eshiksavikas.in/api/order-details/details-by-multiple-orders",
   prepareBatch: "https://eshiksavikas.in/api/order-details/prepare-order",
+  prepareBatchAnyStatus: "https://eshiksavikas.in/api/order-details/prepare-order-any-status",
   resyncOrder: "https://eshiksavikas.in/api/product-details/resync-order",
   resyncAfterApproval: "https://eshiksavikas.in/api/product-details/resync-after-approval",
 };
