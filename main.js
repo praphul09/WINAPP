@@ -14,6 +14,9 @@ const BATCH_BACKUP_DIR = "\\\\pixartnas\\home\\INTERNAL_PROCESSING\\BATCHES_BACK
 const BATCH_PROCESSING_DIR = "\\\\pixartnas\\home\\INTERNAL_PROCESSING\\BATCH_PROCESSING";
 const BOOK_DETAIL_JSON_PATH = "\\\\pixartnas\\home\\INTERNAL_PROCESSING\\BOOKDETAIL.json";
 const BOOK_GENERATOR_SCRIPT_PATH = path.join(__dirname, "book_generator", "generate_books.py");
+const SAMPLE_COVER_ROOT = "\\\\pixartnas\\home\\INTERNAL_PROCESSING\\SAMPLECOVER";
+const ALL_PHOTOS2_ROOT = "\\\\pixartnas\\home\\INTERNAL_PROCESSING\\ALL_PHOTOS2";
+const EXTERNAL_STUDENT_REGENERATE_SCRIPT = "F:\\workspace\\ProductCreation\\app\\regenerate_student_wrapper.py";//String(process.env.WINAPP_STUDENT_REGENERATE_SCRIPT || "").trim();
 const MAX_BUCKETS = 12;
 const BASKETS_PER_BUCKET = 12;
 const STUDENTS_PER_BASKET = 12;
@@ -856,6 +859,399 @@ const runBookGenerator = ({ batchId, batchName }) => {
   }
 
   return { ok: false, message: "Python runtime not found. Install Python or ensure `python`/`py -3` is available." };
+};
+
+const runExternalStudentRegenerate = (payload) => {
+  if (!EXTERNAL_STUDENT_REGENERATE_SCRIPT) {
+    return {
+      ok: false,
+      message: "External regenerate script path is not configured. Set WINAPP_STUDENT_REGENERATE_SCRIPT.",
+    };
+  }
+  if (!fs.existsSync(EXTERNAL_STUDENT_REGENERATE_SCRIPT)) {
+    return { ok: false, message: `External regenerate script not found: ${EXTERNAL_STUDENT_REGENERATE_SCRIPT}` };
+  }
+
+  const commands = [
+    { command: "py", args: ["-3"] },
+    { command: "python", args: [] },
+  ];
+  const inputJson = JSON.stringify(payload || {});
+
+  for (const candidate of commands) {
+    const result = spawnSync(candidate.command, [...candidate.args, EXTERNAL_STUDENT_REGENERATE_SCRIPT], {
+      encoding: "utf8",
+      windowsHide: true,
+      input: inputJson,
+    });
+
+    if (result.error) {
+      console.log(result.error)
+      continue;
+    }
+
+    const stdoutText = String(result.stdout || "").trim();
+    let parsed = null;
+    if (stdoutText) {
+      try {
+        parsed = JSON.parse(stdoutText);
+      } catch (_error) {
+        parsed = null;
+      }
+    }
+
+    if (result.status !== 0) {
+      if (parsed && typeof parsed === "object") return parsed;
+      return {
+        ok: false,
+        message: String(result.stderr || "").trim() || stdoutText || "External student regenerate failed.",
+      };
+    }
+
+    if (!parsed || typeof parsed !== "object") {
+      return { ok: false, message: "External regenerate returned invalid JSON." };
+    }
+    return parsed;
+  }
+
+  return { ok: false, message: "Python runtime not found. Install Python or ensure `python`/`py -3` is available." };
+};
+
+const zpad5 = (value) => String(value || "").trim().padStart(5, "0");
+
+const listBatchVerifyStudents = ({ batchId }) => {
+  const normalizedBatchId = Number(batchId);
+  if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
+    return { ok: false, message: "Invalid batch id." };
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const batch = registryDb
+    .prepare("SELECT id, batch_name, status, db_path FROM batches WHERE id = ?")
+    .get(normalizedBatchId);
+
+  if (!batch) return { ok: false, message: "Batch not found." };
+  if (batch.status !== "building" && batch.status !== "processing") {
+    return { ok: false, message: "Verify student is available only for building or processing batches." };
+  }
+
+  let batchDb;
+  try {
+    batchDb = new Database(batch.db_path);
+    ensureBatchDbSchema(batchDb);
+
+    if (!tableExists(batchDb, "prepared_students") || !tableExists(batchDb, "prepared_product_details")) {
+      return { ok: false, message: "Prepared data not found. Prepare/construct batch first." };
+    }
+
+    const studentRows = batchDb
+      .prepare(
+        `
+          SELECT school_id, school_name, student_id, student_name, class_id, class_name
+          FROM prepared_students
+          WHERE COALESCE(TRIM(school_id), '') != ''
+            AND COALESCE(TRIM(student_id), '') != ''
+            AND COALESCE(TRIM(class_id), '') != ''
+          ORDER BY school_name ASC, school_id ASC, student_name ASC, student_id ASC, class_id ASC
+        `
+      )
+      .all();
+
+    const productRows = batchDb
+      .prepare(
+        `
+          SELECT source_id, product_id, school_id, class_id, name, covercode, innercode
+          FROM prepared_product_details
+          WHERE COALESCE(TRIM(school_id), '') != ''
+            AND COALESCE(TRIM(class_id), '') != ''
+          ORDER BY id ASC
+        `
+      )
+      .all();
+
+    const productsBySchoolClass = new Map();
+    productRows.forEach((row) => {
+      const schoolId = String(row.school_id || "").trim();
+      const classId = String(row.class_id || "").trim();
+      if (!schoolId || !classId) return;
+      const key = `${schoolId}::${classId}`;
+      if (!productsBySchoolClass.has(key)) productsBySchoolClass.set(key, []);
+      productsBySchoolClass.get(key).push({
+        source_id: String(row.source_id || "").trim(),
+        product_id: String(row.product_id || "").trim(),
+        school_id: schoolId,
+        class_id: classId,
+        name: String(row.name || "").trim(),
+        covercode: String(row.covercode || "").trim(),
+        innercode: String(row.innercode || "").trim(),
+      });
+    });
+
+    const uniqueStudents = new Map();
+    studentRows.forEach((row) => {
+      const schoolId = String(row.school_id || "").trim();
+      const studentId = String(row.student_id || "").trim();
+      const classId = String(row.class_id || "").trim();
+      const schoolName = String(row.school_name || "").trim();
+      const studentName = String(row.student_name || "").trim();
+      const className = String(row.class_name || "").trim();
+      if (!schoolId || !studentId || !classId) return;
+      const key = `${schoolId}::${studentId}::${classId}`;
+      if (uniqueStudents.has(key)) return;
+
+      const sampleCoverPath = path.join(SAMPLE_COVER_ROOT, schoolId, `${studentId}.png`);
+      const productKey = `${schoolId}::${classId}`;
+      const classProducts = productsBySchoolClass.get(productKey) || [];
+
+      uniqueStudents.set(key, {
+        school_id: schoolId,
+        school_name: schoolName || schoolId,
+        student_id: studentId,
+        student_name: studentName || studentId,
+        class_id: classId,
+        class_name: className || classId,
+        sample_cover_path: sampleCoverPath,
+        sample_cover_exists: fs.existsSync(sampleCoverPath),
+        product_rows: classProducts,
+      });
+    });
+
+    const students = Array.from(uniqueStudents.values()).filter(
+      (row) => row.sample_cover_exists && Array.isArray(row.product_rows) && row.product_rows.length > 0
+    );
+
+    return {
+      ok: true,
+      data: {
+        batch_id: batch.id,
+        batch_name: batch.batch_name,
+        status: batch.status,
+        students,
+      },
+    };
+  } catch (error) {
+    return { ok: false, message: error.message || "Unable to load verify students." };
+  } finally {
+    if (batchDb) batchDb.close();
+  }
+};
+
+const openStudentPhotoFile = ({ schoolId, studentId }) => {
+  const school = String(schoolId || "").trim();
+  const student = String(studentId || "").trim();
+  if (!school || !student) {
+    return { ok: false, message: "school_id and student_id are required." };
+  }
+
+  const filePath = path.join(ALL_PHOTOS2_ROOT, school, "FULL", `${zpad5(school)}_${zpad5(student)}.png`);
+  if (!fs.existsSync(filePath)) {
+    return { ok: false, message: `Photo file not found: ${filePath}` };
+  }
+
+  shell.showItemInFolder(filePath);
+  return { ok: true, data: { file_path: filePath } };
+};
+
+const regenerateStudentWithExternal = ({ batchId, student, productRows }) => {
+  const normalizedBatchId = Number(batchId);
+  if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
+    return { ok: false, message: "Invalid batch id." };
+  }
+
+  const studentRow = student || {};
+  const schoolId = String(studentRow.school_id || "").trim();
+  const studentId = String(studentRow.student_id || "").trim();
+  const classId = String(studentRow.class_id || "").trim();
+  const products = Array.isArray(productRows) ? productRows : [];
+  if (!schoolId || !studentId || !classId) {
+    return { ok: false, message: "student.school_id, student.student_id and student.class_id are required." };
+  }
+  if (!products.length) {
+    return { ok: false, message: "productRows cannot be empty." };
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const batch = registryDb
+    .prepare("SELECT id, batch_name, status, db_path FROM batches WHERE id = ?")
+    .get(normalizedBatchId);
+  if (!batch) return { ok: false, message: "Batch not found." };
+  if (batch.status !== "building" && batch.status !== "processing") {
+    return { ok: false, message: "Verify student regenerate is available only for building or processing batches." };
+  }
+
+  const payload = {
+    action: "regenerate_student",
+    batch_id: batch.id,
+    batch_name: batch.batch_name,
+    registry_path: path.join(BATCH_ROOT_DIR, "batch-registry.db"),
+    batch_db_path: batch.db_path,
+    student: {
+      school_id: schoolId,
+      school_name: String(studentRow.school_name || "").trim(),
+      student_id: studentId,
+      student_name: String(studentRow.student_name || "").trim(),
+      class_id: classId,
+      class_name: String(studentRow.class_name || "").trim(),
+    },
+    product_rows: products,
+  };
+
+  return runExternalStudentRegenerate(payload);
+};
+
+const normalizeStudentNameForSimilarity = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const levenshteinDistance = (a, b) => {
+  const left = String(a || "");
+  const right = String(b || "");
+  if (left === right) return 0;
+  if (!left.length) return right.length;
+  if (!right.length) return left.length;
+
+  const prev = Array.from({ length: right.length + 1 }, (_v, i) => i);
+  for (let i = 1; i <= left.length; i += 1) {
+    let corner = i - 1;
+    prev[0] = i;
+    for (let j = 1; j <= right.length; j += 1) {
+      const upper = prev[j];
+      const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+      prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, corner + cost);
+      corner = upper;
+    }
+  }
+  return prev[right.length];
+};
+
+const areNamesSimilar = (nameA, nameB) => {
+  const a = normalizeStudentNameForSimilarity(nameA);
+  const b = normalizeStudentNameForSimilarity(nameB);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (a.includes(b) || b.includes(a)) return true;
+
+  const minLen = Math.min(a.length, b.length);
+  if (minLen < 4) return false;
+
+  const distance = levenshteinDistance(a, b);
+  if (minLen >= 10) return distance <= 2;
+  return distance <= 1;
+};
+
+const analyzeBatchStudentDuplicates = ({ batchId }) => {
+  const normalizedBatchId = Number(batchId);
+  if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
+    return { ok: false, message: "Invalid batch id." };
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const batch = registryDb
+    .prepare("SELECT id, batch_name, status, db_path FROM batches WHERE id = ?")
+    .get(normalizedBatchId);
+  if (!batch) return { ok: false, message: "Batch not found." };
+  if (batch.status !== "building" && batch.status !== "processing") {
+    return { ok: false, message: "Analyze duplicates is available only for building or processing batches." };
+  }
+
+  let batchDb;
+  try {
+    batchDb = new Database(batch.db_path);
+    ensureBatchDbSchema(batchDb);
+    if (!tableExists(batchDb, "prepared_students")) {
+      return { ok: false, message: "prepared_students table does not exist." };
+    }
+
+    const rows = batchDb
+      .prepare(
+        `
+          SELECT school_id, school_name, student_id, student_name, class_name
+          FROM prepared_students
+          WHERE COALESCE(TRIM(school_id), '') != ''
+            AND COALESCE(TRIM(student_id), '') != ''
+            AND COALESCE(TRIM(student_name), '') != ''
+          ORDER BY school_name ASC, school_id ASC, student_name ASC, student_id ASC
+        `
+      )
+      .all()
+      .map((row) => ({
+        school_id: String(row.school_id || "").trim(),
+        school_name: String(row.school_name || "").trim() || String(row.school_id || "").trim(),
+        student_id: String(row.student_id || "").trim(),
+        student_name: String(row.student_name || "").trim(),
+        student_grade: String(row.class_name || "").trim(),
+      }));
+
+    const schools = new Map();
+    rows.forEach((row) => {
+      if (!schools.has(row.school_id)) schools.set(row.school_id, []);
+      schools.get(row.school_id).push(row);
+    });
+
+    const results = [];
+    schools.forEach((students, schoolId) => {
+      const n = students.length;
+      if (n < 2) return;
+
+      const parent = Array.from({ length: n }, (_v, i) => i);
+      const find = (x) => {
+        let node = x;
+        while (parent[node] !== node) {
+          parent[node] = parent[parent[node]];
+          node = parent[node];
+        }
+        return node;
+      };
+      const union = (a, b) => {
+        const pa = find(a);
+        const pb = find(b);
+        if (pa !== pb) parent[pb] = pa;
+      };
+
+      for (let i = 0; i < n; i += 1) {
+        for (let j = i + 1; j < n; j += 1) {
+          if (areNamesSimilar(students[i].student_name, students[j].student_name)) {
+            union(i, j);
+          }
+        }
+      }
+
+      const groups = new Map();
+      for (let i = 0; i < n; i += 1) {
+        const root = find(i);
+        if (!groups.has(root)) groups.set(root, []);
+        groups.get(root).push(students[i]);
+      }
+
+      const duplicateGroups = Array.from(groups.values())
+        .filter((group) => group.length > 1)
+        .map((group) => ({
+          school_id: schoolId,
+          school_name: group[0]?.school_name || schoolId,
+          members: group,
+        }));
+
+      results.push(...duplicateGroups);
+    });
+
+    return {
+      ok: true,
+      data: {
+        batch_id: batch.id,
+        batch_name: batch.batch_name,
+        status: batch.status,
+        groups: results,
+        total_groups: results.length,
+      },
+    };
+  } catch (error) {
+    return { ok: false, message: error.message || "Unable to analyze duplicates." };
+  } finally {
+    if (batchDb) batchDb.close();
+  }
 };
 
 const openBatchProcessingFolder = async ({ batchId }) => {
@@ -3688,6 +4084,34 @@ app.whenReady().then(() => {
       return regenerateBooks(payload || {});
     } catch (error) {
       return { ok: false, message: error.message || "Unable to regenerate books." };
+    }
+  });
+  ipcMain.handle("list-batch-verify-students", (_event, payload) => {
+    try {
+      return listBatchVerifyStudents(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to load verify students." };
+    }
+  });
+  ipcMain.handle("open-student-photo-file", (_event, payload) => {
+    try {
+      return openStudentPhotoFile(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to open student photo file." };
+    }
+  });
+  ipcMain.handle("regenerate-student-external", (_event, payload) => {
+    try {
+      return regenerateStudentWithExternal(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to regenerate student." };
+    }
+  });
+  ipcMain.handle("analyze-batch-student-duplicates", (_event, payload) => {
+    try {
+      return analyzeBatchStudentDuplicates(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to analyze duplicates." };
     }
   });
   ipcMain.handle("set-batch-processing", (_event, payload) => {

@@ -31,6 +31,16 @@ let detailedInfoTitle = null;
 let detailedInfoBody = null;
 let activeDetailedInfoBatch = null;
 let activeDetailedInfoPayload = null;
+let verifyStudentBackdrop = null;
+let verifyStudentTitle = null;
+let verifyStudentBody = null;
+let verifyStudentBatch = null;
+let verifyStudentRows = [];
+let verifyStudentIndex = 0;
+let verifyStudentImageNonce = Date.now();
+let duplicateBackdrop = null;
+let duplicateTitle = null;
+let duplicateBody = null;
 let moveOrderBackdrop = null;
 let moveOrderSelect = null;
 let moveOrderTitle = null;
@@ -1055,6 +1065,263 @@ const handleRegenerateBooks = async (batch) => {
   await refreshAllBatches();
 };
 
+const fileUrlFromPath = (rawPath) => {
+  const input = String(rawPath || "").trim();
+  if (!input) return "";
+  let normalized = input.replace(/\\/g, "/");
+  if (normalized.startsWith("//")) return `file:${normalized}`;
+  if (!normalized.startsWith("/")) normalized = `/${normalized}`;
+  return `file://${normalized}`;
+};
+
+const ensureVerifyStudentModal = () => {
+  if (verifyStudentBackdrop) return;
+
+  verifyStudentBackdrop = document.createElement("div");
+  verifyStudentBackdrop.className = "modal-backdrop hidden";
+  verifyStudentBackdrop.innerHTML = `
+    <div class="modal" style="max-width: 900px; width: min(900px, 94vw);">
+      <div class="modal-header">
+        <h3 id="verify-student-title">Verify student</h3>
+        <button class="ghost-button" id="verify-student-close" type="button">Close</button>
+      </div>
+      <div class="modal-body" id="verify-student-body"></div>
+    </div>
+  `;
+
+  document.body.appendChild(verifyStudentBackdrop);
+  verifyStudentTitle = document.getElementById("verify-student-title");
+  verifyStudentBody = document.getElementById("verify-student-body");
+  const closeButton = document.getElementById("verify-student-close");
+
+  const closeModal = () => {
+    verifyStudentBackdrop.classList.add("hidden");
+  };
+  closeButton?.addEventListener("click", closeModal);
+  verifyStudentBackdrop.addEventListener("click", (event) => {
+    if (event.target === verifyStudentBackdrop) closeModal();
+  });
+};
+
+const renderVerifyStudentModal = () => {
+  if (!verifyStudentBody || !verifyStudentBatch) return;
+  const total = verifyStudentRows.length;
+  if (total === 0) {
+    verifyStudentBody.innerHTML = `<p class="helper-text">No sample cover images found for this batch.</p>`;
+    return;
+  }
+
+  const row = verifyStudentRows[verifyStudentIndex];
+  const imageUrlBase = fileUrlFromPath(row.sample_cover_path);
+  const imageUrl = imageUrlBase ? `${imageUrlBase}${imageUrlBase.includes("?") ? "&" : "?"}v=${verifyStudentImageNonce}` : "";
+  verifyStudentBody.innerHTML = `
+    <section class="table-card">
+      <div class="table-header">
+        <h3>${row.school_name || "-"}</h3>
+        <span class="panel-meta">${verifyStudentIndex + 1} / ${total}</span>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+        <span class="helper-text" style="margin: 0;">Present row: <strong>${verifyStudentIndex + 1}</strong> / ${total}</span>
+        <input
+          id="verify-student-goto-input"
+          class="text-input"
+          type="number"
+          min="1"
+          max="${total}"
+          value="${verifyStudentIndex + 1}"
+          style="width: 110px;"
+        />
+        <button type="button" class="ghost-button" id="verify-student-goto-btn">Go to row</button>
+      </div>
+      <p class="helper-text">
+        School: ${row.school_id || "-"} |
+        Class: ${row.class_name || row.class_id || "-"} |
+        Student: ${row.student_name || "-"} (${row.student_id || "-"})
+      </p>
+      <div style="display: flex; justify-content: center; margin: 8px 0 16px 0;">
+        <img src="${imageUrl}" alt="Sample cover" style="max-width: 100%; max-height: 420px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px;" />
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" class="ghost-button" id="verify-student-next">Next</button>
+        <button type="button" class="ghost-button" id="verify-student-open-photo">Open photo</button>
+        <button type="button" class="primary-button" id="verify-student-regenerate">Regenerate</button>
+      </div>
+    </section>
+  `;
+
+  verifyStudentBody.querySelector("#verify-student-next")?.addEventListener("click", () => {
+    verifyStudentIndex = (verifyStudentIndex + 1) % total;
+    renderVerifyStudentModal();
+  });
+
+  verifyStudentBody.querySelector("#verify-student-goto-btn")?.addEventListener("click", () => {
+    const input = verifyStudentBody.querySelector("#verify-student-goto-input");
+    const next = Number(String(input?.value || "").trim());
+    if (!Number.isInteger(next) || next < 1 || next > total) {
+      setStatus(`Enter row number between 1 and ${total}.`, "error");
+      return;
+    }
+    verifyStudentIndex = next - 1;
+    renderVerifyStudentModal();
+  });
+
+  verifyStudentBody.querySelector("#verify-student-open-photo")?.addEventListener("click", async () => {
+    setStatus("Opening student photo in explorer...", "neutral");
+    const result = await window.appBridge?.openStudentPhotoFile?.({
+      schoolId: row.school_id,
+      studentId: row.student_id,
+    });
+    if (!result?.ok) {
+      setStatus(result?.message || "Unable to open student photo.", "error");
+      return;
+    }
+    setStatus("Student photo opened in explorer.", "success");
+  });
+
+  verifyStudentBody.querySelector("#verify-student-regenerate")?.addEventListener("click", async () => {
+    const confirmed = window.confirm(
+      `Regenerate for ${row.student_name || row.student_id} in ${verifyStudentBatch.batchName}?`
+    );
+    if (!confirmed) return;
+
+    setStatus("Running external student regenerate...", "neutral");
+    const result = await window.appBridge?.regenerateStudentExternal?.({
+      batchId: verifyStudentBatch.id,
+      student: {
+        school_id: row.school_id,
+        school_name: row.school_name,
+        student_id: row.student_id,
+        student_name: row.student_name,
+        class_id: row.class_id,
+        class_name: row.class_name,
+      },
+      productRows: Array.isArray(row.product_rows) ? row.product_rows : [],
+    });
+    if (!result?.ok) {
+      setStatus(result?.message || "Student regenerate failed.", "error");
+      return;
+    }
+    setStatus(result?.message || "Student regenerate completed.", "success");
+    verifyStudentImageNonce = Date.now();
+    renderVerifyStudentModal();
+  });
+};
+
+const handleVerifyStudent = async (batch) => {
+  ensureVerifyStudentModal();
+  setStatus("Loading sample covers school-wise...", "neutral");
+  const result = await window.appBridge?.listBatchVerifyStudents?.({ batchId: batch.id });
+  if (!result?.ok) {
+    setStatus(result?.message || "Unable to load verify students.", "error");
+    return;
+  }
+
+  verifyStudentBatch = batch;
+  verifyStudentRows = Array.isArray(result.data?.students) ? result.data.students : [];
+  verifyStudentIndex = 0;
+  verifyStudentTitle.textContent = `Verify student - ${batch.batchName}`;
+  renderVerifyStudentModal();
+  verifyStudentBackdrop.classList.remove("hidden");
+  setStatus("Verify student data loaded.", "success");
+};
+
+const ensureDuplicateModal = () => {
+  if (duplicateBackdrop) return;
+
+  duplicateBackdrop = document.createElement("div");
+  duplicateBackdrop.className = "modal-backdrop hidden";
+  duplicateBackdrop.innerHTML = `
+    <div class="modal" style="max-width: 1100px; width: min(1100px, 95vw);">
+      <div class="modal-header">
+        <h3 id="duplicate-title">Analyze duplicates</h3>
+        <button class="ghost-button" id="duplicate-close" type="button">Close</button>
+      </div>
+      <div class="modal-body" id="duplicate-body"></div>
+    </div>
+  `;
+
+  document.body.appendChild(duplicateBackdrop);
+  duplicateTitle = document.getElementById("duplicate-title");
+  duplicateBody = document.getElementById("duplicate-body");
+  const closeButton = document.getElementById("duplicate-close");
+  const closeModal = () => duplicateBackdrop.classList.add("hidden");
+  closeButton?.addEventListener("click", closeModal);
+  duplicateBackdrop.addEventListener("click", (event) => {
+    if (event.target === duplicateBackdrop) closeModal();
+  });
+};
+
+const renderDuplicateModal = (batch, groups) => {
+  ensureDuplicateModal();
+  duplicateTitle.textContent = `Analyze duplicates - ${batch.batchName}`;
+
+  if (!Array.isArray(groups) || groups.length === 0) {
+    duplicateBody.innerHTML = `<p class="helper-text">No similar student names found.</p>`;
+    duplicateBackdrop.classList.remove("hidden");
+    return;
+  }
+
+  duplicateBody.innerHTML = groups
+    .map((group, index) => {
+      const schoolName = group?.school_name || "-";
+      const schoolId = group?.school_id || "-";
+      const members = Array.isArray(group?.members) ? group.members : [];
+      const rows = members
+        .map(
+          (member) => `
+            <tr>
+              <td>${member?.student_name || "-"}</td>
+              <td>${member?.student_id || "-"}</td>
+              <td>${member?.student_grade || "-"}</td>
+              <td>${member?.school_id || schoolId || "-"}</td>
+              <td>${member?.school_name || schoolName || "-"}</td>
+            </tr>
+          `
+        )
+        .join("");
+
+      return `
+        <section class="table-card" style="margin-bottom: 14px;">
+          <div class="table-header">
+            <h3>Group ${index + 1}</h3>
+            <span class="panel-meta">${schoolName} (${schoolId})</span>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Student name</th>
+                  <th>Student id</th>
+                  <th>Student grade</th>
+                  <th>School id</th>
+                  <th>School name</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </section>
+      `;
+    })
+    .join("");
+
+  duplicateBackdrop.classList.remove("hidden");
+};
+
+const handleAnalyzeDuplicates = async (batch) => {
+  setStatus("Analyzing duplicates from prepared students...", "neutral");
+  const result = await window.appBridge?.analyzeBatchStudentDuplicates?.({
+    batchId: batch.id,
+  });
+  if (!result?.ok) {
+    setStatus(result?.message || "Unable to analyze duplicates.", "error");
+    return;
+  }
+  const groups = Array.isArray(result.data?.groups) ? result.data.groups : [];
+  renderDuplicateModal(batch, groups);
+  setStatus(`Duplicate analysis completed. Groups found: ${groups.length}.`, "success");
+};
+
 const handleSetBatchProcessing = async (batch) => {
   
   console.log(batch);
@@ -1406,6 +1673,22 @@ const renderTable = (rows, emptyMessage) => {
       });
 
       menuItems.push({
+        label: "Verify student",
+        className: "ghost-button",
+        onClick: async () => {
+          await handleVerifyStudent(batch);
+        },
+      });
+
+      menuItems.push({
+        label: "Analyze duplicates",
+        className: "ghost-button",
+        onClick: async () => {
+          await handleAnalyzeDuplicates(batch);
+        },
+      });
+
+      menuItems.push({
         label: "Set to processing",
         className: "ghost-button",
         disabled: !batch.coverBinderGenerated || !batch.innerBinderGenerated,
@@ -1416,6 +1699,22 @@ const renderTable = (rows, emptyMessage) => {
     }
 
     if (batch.status === "processing") {
+      menuItems.push({
+        label: "Verify student",
+        className: "ghost-button",
+        onClick: async () => {
+          await handleVerifyStudent(batch);
+        },
+      });
+
+      menuItems.push({
+        label: "Analyze duplicates",
+        className: "ghost-button",
+        onClick: async () => {
+          await handleAnalyzeDuplicates(batch);
+        },
+      });
+
       menuItems.push({
         label: batch.active ? "Active" : "Mark active",
         className: "ghost-button",
