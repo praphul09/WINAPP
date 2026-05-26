@@ -18,6 +18,7 @@ const STATUS_LABELS = [
   { key: "dispatch", label: "Dispatch" },
   { key: "delivered", label: "Delivered" },
 ];
+const ASSIGNEE_OPTIONS = ["Jagadish", "Ashwin", "Surya", "other"];
 
 const STATUS_CHIPS = {
   new: "chip-new",
@@ -36,9 +37,12 @@ const refreshBtn = document.getElementById("refresh-btn");
 const lastRefresh = document.getElementById("last-refresh");
 const nameFilterInput = document.createElement("input");
 const orderTypeFilterSelect = document.createElement("select");
+const assigneeFilterSelect = document.createElement("select");
+const batchFilterSelect = document.createElement("select");
 const selectAllOrdersInput = document.getElementById("select-all-orders");
 const bulkPdfButton = document.createElement("button");
 const bulkSendForApprovalButton = document.createElement("button");
+const downloadCsvButton = document.createElement("button");
 
 const modalBackdrop = document.getElementById("modal-backdrop");
 const modalTitle = document.getElementById("modal-title");
@@ -59,6 +63,8 @@ const selectedOrdersByStatus = new Map();
 let currentVisibleOrders = [];
 let jsPdfLoaderPromise = null;
 let activeOrderTypeFilter = "all";
+let activeAssigneeFilter = "all";
+let activeBatchFilter = "all";
 let batchPickerBackdrop = null;
 let batchPickerTitle = null;
 let batchPickerMessage = null;
@@ -66,6 +72,13 @@ let batchPickerSelect = null;
 let batchPickerConfirm = null;
 let batchPickerCancel = null;
 let batchPickerResolve = null;
+let assigneePickerBackdrop = null;
+let assigneePickerTitle = null;
+let assigneePickerMessage = null;
+let assigneePickerSelect = null;
+let assigneePickerConfirm = null;
+let assigneePickerCancel = null;
+let assigneePickerResolve = null;
 
 const toApiStatus = (status) => {
   if (status === "pending_approval") {
@@ -86,10 +99,62 @@ const getNameFilterForStatus = (status) =>
 
 const getNormalizedOrderType = (order) => {
   const value = String(order?.order_type || "").trim().toLowerCase();
-  if (value === "curriculum" || value === "single_book" || value === "rest") {
+  if (
+    value === "curriculum_books" ||
+    value === "non_personalized_order" ||
+    value === "id_card" ||
+    value === "report_card" ||
+    value === "certificate" ||
+    value === "other"
+  ) {
     return value;
   }
-  return value ? "rest" : "";
+  return value ? "other" : "";
+};
+
+const getNormalizedAssignee = (order) => String(order?.assigned_to || "").trim();
+const getNormalizedBatchFilterValue = (order) => {
+  const batchId = String(order?.batch_id || "").trim();
+  if (batchId) {
+    return `batch:${batchId}`;
+  }
+  return "unassigned";
+};
+
+const getBatchFilterOptions = (orders) => {
+  const unique = new Map();
+  (Array.isArray(orders) ? orders : []).forEach((order) => {
+    const value = getNormalizedBatchFilterValue(order);
+    if (value === "unassigned") {
+      return;
+    }
+    if (!unique.has(value)) {
+      unique.set(value, {
+        value,
+        label: String(order?.batch_name || order?.batch_id || "").trim() || "Unnamed batch",
+      });
+    }
+  });
+
+  return Array.from(unique.values()).sort((left, right) => left.label.localeCompare(right.label));
+};
+
+const syncBatchFilterOptions = (orders) => {
+  const options = getBatchFilterOptions(orders);
+  const nextValue =
+    activeBatchFilter === "all" ||
+    activeBatchFilter === "unassigned" ||
+    options.some((option) => option.value === activeBatchFilter)
+      ? activeBatchFilter
+      : "all";
+
+  batchFilterSelect.innerHTML = `
+    <option value="all">All batches</option>
+    <option value="unassigned">Unassigned</option>
+    ${options.map((option) => `<option value="${option.value}">${option.label}</option>`).join("")}
+  `;
+  activeBatchFilter = nextValue;
+  batchFilterSelect.value = nextValue;
 };
 
 const getSelectedOrdersForStatus = (status) => {
@@ -102,6 +167,8 @@ const getSelectedOrdersForStatus = (status) => {
 const syncSelectionControls = (state, visibleOrders) => {
   const selected = getSelectedOrdersForStatus(state.activeStatus);
   const selectedCount = selected.size;
+  const activeStatusLabel =
+    STATUS_LABELS.find((status) => status.key === state.activeStatus)?.label || "Orders";
   bulkPdfButton.classList.toggle("hidden", selectedCount === 0);
   bulkPdfButton.textContent =
     selectedCount > 0
@@ -114,6 +181,7 @@ const syncSelectionControls = (state, visibleOrders) => {
     selectedCount > 0
       ? `Bulk Send For Approval (${selectedCount})`
       : "Bulk Send For Approval";
+  downloadCsvButton.textContent = `Download ${activeStatusLabel} CSV`;
 
   if (!selectAllOrdersInput) return;
   if (!visibleOrders.length) {
@@ -702,6 +770,72 @@ const pickBatchForOrder = async (order, batches) => {
   });
 };
 
+const ensureAssigneePickerModal = () => {
+  if (assigneePickerBackdrop) return;
+
+  const wrapper = document.createElement("div");
+  wrapper.id = "assignee-picker-backdrop";
+  wrapper.className = "modal-backdrop hidden";
+  wrapper.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="assignee-picker-title">Change assignee</h3>
+        <button class="ghost-button" id="assignee-picker-cancel" type="button">Close</button>
+      </div>
+      <div class="modal-body">
+        <p id="assignee-picker-message"></p>
+        <select id="assignee-picker-select" class="text-input"></select>
+        <div class="form-row">
+          <button id="assignee-picker-confirm" class="primary-button" type="button">Save assignee</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(wrapper);
+  assigneePickerBackdrop = document.getElementById("assignee-picker-backdrop");
+  assigneePickerTitle = document.getElementById("assignee-picker-title");
+  assigneePickerMessage = document.getElementById("assignee-picker-message");
+  assigneePickerSelect = document.getElementById("assignee-picker-select");
+  assigneePickerConfirm = document.getElementById("assignee-picker-confirm");
+  assigneePickerCancel = document.getElementById("assignee-picker-cancel");
+
+  const close = (value = null) => {
+    assigneePickerBackdrop.classList.add("hidden");
+    if (assigneePickerResolve) {
+      const resolve = assigneePickerResolve;
+      assigneePickerResolve = null;
+      resolve(value);
+    }
+  };
+
+  assigneePickerCancel.addEventListener("click", () => close(null));
+  assigneePickerBackdrop.addEventListener("click", (event) => {
+    if (event.target === assigneePickerBackdrop) {
+      close(null);
+    }
+  });
+  assigneePickerConfirm.addEventListener("click", () => {
+    close(assigneePickerSelect?.value || null);
+  });
+};
+
+const pickAssigneeForOrder = async (order) => {
+  ensureAssigneePickerModal();
+
+  assigneePickerTitle.textContent = `Set assignee for order ${order.order_number}`;
+  assigneePickerMessage.textContent = `Choose who is assigned to ${order.school_name || "this order"}.`;
+  assigneePickerSelect.innerHTML = ASSIGNEE_OPTIONS
+    .map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`)
+    .join("");
+  assigneePickerSelect.value = ASSIGNEE_OPTIONS.includes(order.assigned_to) ? order.assigned_to : "other";
+  assigneePickerBackdrop.classList.remove("hidden");
+
+  return new Promise((resolve) => {
+    assigneePickerResolve = resolve;
+  });
+};
+
 modalClose.addEventListener("click", closeModal);
 modalBackdrop.addEventListener("click", (event) => {
   if (event.target === modalBackdrop) {
@@ -760,6 +894,75 @@ const renderBatchChip = (order) => {
         : "chip-new"
   );
   return chip;
+};
+
+const renderAssignedChip = (assignedTo) => {
+  const chip = document.createElement("span");
+  chip.className = "status-chip chip-building";
+  chip.textContent = assignedTo || "";
+  return chip;
+};
+
+const saveOrderAssignee = async (order, selectedAssignee, { showSuccess = false } = {}) => {
+  showLoading();
+  try {
+    const result = await window.appBridge?.setOrderAssignee?.({
+      orderNumber: order.order_number,
+      assignee: selectedAssignee,
+      currentStatus: order.status,
+      schoolName: order.school_name,
+    });
+    if (!result?.ok) {
+      showModal({
+        title: "Change assignee",
+        message: result?.message || "Unable to update assignee.",
+      });
+      return { ok: false };
+    }
+
+    updateOrder(order.order_number, {
+      assigned_to: result.data?.assigned_to || selectedAssignee,
+    });
+
+    if (showSuccess) {
+      showModal({
+        title: "Success",
+        message: `Assignee updated to ${result.data?.assigned_to || selectedAssignee}.`,
+      });
+    }
+
+    return { ok: true, data: result.data };
+  } finally {
+    hideLoading();
+  }
+};
+
+const renderAssignedControl = (order) => {
+  if (order.status !== "new" && order.status !== "freeze") {
+    return renderAssignedChip(order.assigned_to || "");
+  }
+
+  const select = document.createElement("select");
+  select.className = "text-input";
+  select.style.minWidth = "120px";
+  select.style.maxWidth = "140px";
+  select.innerHTML = ['<option value=""></option>', ...ASSIGNEE_OPTIONS
+    .map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`)]
+    .join("");
+  select.value = ASSIGNEE_OPTIONS.includes(order.assigned_to) ? order.assigned_to : "";
+  select.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  select.addEventListener("change", async () => {
+    const previousValue = ASSIGNEE_OPTIONS.includes(order.assigned_to) ? order.assigned_to : "";
+    const nextValue = String(select.value || "").trim();
+    const saveResult = await saveOrderAssignee(order, nextValue);
+    if (!saveResult?.ok) {
+      select.value = previousValue;
+    }
+  });
+
+  return select;
 };
 
 const performAction = async (order, nextStatus, endpoint, apiStatus) => {
@@ -1344,6 +1547,23 @@ const handleRemoveFromBatch = async (order) => {
   }
 };
 
+const handleChangeAssignee = async (order) => {
+  if (order.status !== "new" && order.status !== "freeze") {
+    showModal({
+      title: "Change assignee",
+      message: "Assignee can change only for orders with status 'new' or 'freeze'.",
+    });
+    return;
+  }
+
+  const selectedAssignee = await pickAssigneeForOrder(order);
+  if (!selectedAssignee) {
+    return;
+  }
+
+  await saveOrderAssignee(order, selectedAssignee, { showSuccess: true });
+};
+
 const renderActions = (order) => {
   const menu = document.createElement("div");
   menu.className = "action-menu";
@@ -1393,12 +1613,20 @@ const renderActions = (order) => {
   };
 
   if (order.status === "new") {
+    addMenuButton("Change assignee", "ghost-button", () => {
+      handleChangeAssignee(order);
+    });
+
     addMenuButton("Freeze order", "danger-button", () => {
       performAction(order, "freeze", API_ENDPOINTS.statusChange, "freeze");
     });
   }
 
   if (order.status === "freeze") {
+    addMenuButton("Change assignee", "ghost-button", () => {
+      handleChangeAssignee(order);
+    });
+
     addMenuButton("Unfreeze order", "primary-button", () => {
       performAction(order, "new", API_ENDPOINTS.statusChange, "new");
     });
@@ -1474,6 +1702,7 @@ const renderActions = (order) => {
 
 const renderTable = (state) => {
   ordersBody.innerHTML = "";
+  syncBatchFilterOptions(state.orders);
   const statusFiltered =
     state.activeStatus === "all"
       ? state.orders
@@ -1484,6 +1713,14 @@ const renderTable = (state) => {
       activeOrderTypeFilter === "all" ||
       getNormalizedOrderType(order) === activeOrderTypeFilter;
     if (!matchesType) return false;
+    const matchesAssignee =
+      activeAssigneeFilter === "all" ||
+      getNormalizedAssignee(order) === activeAssigneeFilter;
+    if (!matchesAssignee) return false;
+    const matchesBatch =
+      activeBatchFilter === "all" ||
+      getNormalizedBatchFilterValue(order) === activeBatchFilter;
+    if (!matchesBatch) return false;
     if (!activeNameFilter) return true;
     const name = String(order.school_name || order.name || "").toLowerCase();
     return name.includes(activeNameFilter);
@@ -1496,11 +1733,13 @@ const renderTable = (state) => {
     "Orders";
   nameFilterInput.value = nameFiltersByStatus.get(state.activeStatus) || "";
   orderTypeFilterSelect.value = activeOrderTypeFilter;
+  assigneeFilterSelect.value = activeAssigneeFilter;
+  batchFilterSelect.value = activeBatchFilter;
 
   if (filtered.length === 0) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
-    cell.colSpan = 7;
+    cell.colSpan = 9;
     cell.textContent = "No orders to display.";
     cell.style.color = "var(--muted)";
     row.appendChild(cell);
@@ -1538,6 +1777,10 @@ const renderTable = (state) => {
     schoolCell.textContent = order.school_name;
     row.appendChild(schoolCell);
 
+    const schoolIdCell = document.createElement("td");
+    schoolIdCell.textContent = order.school_id || "-";
+    row.appendChild(schoolIdCell);
+
     const dateCell = document.createElement("td");
     dateCell.textContent = formatDate(order.order_date);
     row.appendChild(dateCell);
@@ -1545,6 +1788,10 @@ const renderTable = (state) => {
     const statusCell = document.createElement("td");
     statusCell.appendChild(renderStatusChip(order.status));
     row.appendChild(statusCell);
+
+    const assignedCell = document.createElement("td");
+    assignedCell.appendChild(renderAssignedControl(order));
+    row.appendChild(assignedCell);
 
     const batchCell = document.createElement("td");
     batchCell.appendChild(renderBatchChip(order));
@@ -1559,22 +1806,50 @@ const renderTable = (state) => {
   syncSelectionControls(state, filtered);
 };
 
+const getOrdersForActiveStatusExport = (state) => {
+  if (state.activeStatus === "all") {
+    return [...state.orders];
+  }
+  return state.orders.filter((order) => order.status === state.activeStatus);
+};
+
 export const initUI = ({ onRefresh, onStatusChange }) => {
   orderTypeFilterSelect.id = "order-type-filter";
   orderTypeFilterSelect.className = "text-input";
   orderTypeFilterSelect.style.maxWidth = "220px";
   orderTypeFilterSelect.style.minWidth = "180px";
   orderTypeFilterSelect.innerHTML = `
-    <option value="all">All order types</option>
-    <option value="curriculum">Curriculum</option>
-    <option value="single_book">Single book</option>
-    <option value="rest">Rest</option>
+    <option value="all">All</option>
+    <option value="curriculum_books">Curriculum Books</option>
+    <option value="non_personalized_order">Non Personalized Order</option>
+    <option value="id_card">ID Card</option>
+    <option value="report_card">Report Card</option>
+    <option value="certificate">Certificate</option>
+    <option value="other">Other</option>
+  `;
+  assigneeFilterSelect.id = "assignee-filter";
+  assigneeFilterSelect.className = "text-input";
+  assigneeFilterSelect.style.maxWidth = "200px";
+  assigneeFilterSelect.style.minWidth = "180px";
+  assigneeFilterSelect.innerHTML = `
+    <option value="all">All assignees</option>
+    ${ASSIGNEE_OPTIONS.map((name) => `<option value="${name}">${name}</option>`).join("")}
+  `;
+  batchFilterSelect.id = "batch-filter";
+  batchFilterSelect.className = "text-input";
+  batchFilterSelect.style.maxWidth = "220px";
+  batchFilterSelect.style.minWidth = "180px";
+  batchFilterSelect.innerHTML = `
+    <option value="all">All batches</option>
+    <option value="unassigned">Unassigned</option>
   `;
   nameFilterInput.id = "name-filter";
   nameFilterInput.className = "text-input";
   nameFilterInput.placeholder = "Filter by name";
   nameFilterInput.style.maxWidth = "240px";
   nameFilterInput.style.minWidth = "180px";
+  refreshBtn.insertAdjacentElement("beforebegin", batchFilterSelect);
+  refreshBtn.insertAdjacentElement("beforebegin", assigneeFilterSelect);
   refreshBtn.insertAdjacentElement("beforebegin", orderTypeFilterSelect);
   refreshBtn.insertAdjacentElement("beforebegin", nameFilterInput);
   bulkPdfButton.className = "primary-button hidden";
@@ -1583,6 +1858,10 @@ export const initUI = ({ onRefresh, onStatusChange }) => {
   bulkSendForApprovalButton.className = "primary-button hidden";
   bulkSendForApprovalButton.textContent = "Bulk Send For Approval";
   bulkSendForApprovalButton.style.marginRight = "8px";
+  downloadCsvButton.className = "ghost-button";
+  downloadCsvButton.textContent = "Download CSV";
+  downloadCsvButton.style.marginRight = "8px";
+  refreshBtn.insertAdjacentElement("beforebegin", downloadCsvButton);
   refreshBtn.insertAdjacentElement("beforebegin", bulkSendForApprovalButton);
   refreshBtn.insertAdjacentElement("beforebegin", bulkPdfButton);
 
@@ -1594,6 +1873,16 @@ export const initUI = ({ onRefresh, onStatusChange }) => {
 
   orderTypeFilterSelect.addEventListener("change", (event) => {
     activeOrderTypeFilter = String(event.target.value || "all");
+    renderTable(getState());
+  });
+
+  assigneeFilterSelect.addEventListener("change", (event) => {
+    activeAssigneeFilter = String(event.target.value || "all");
+    renderTable(getState());
+  });
+
+  batchFilterSelect.addEventListener("change", (event) => {
+    activeBatchFilter = String(event.target.value || "all");
     renderTable(getState());
   });
 
@@ -1663,6 +1952,43 @@ export const initUI = ({ onRefresh, onStatusChange }) => {
 
   bulkSendForApprovalButton.addEventListener("click", async () => {
     await handleBulkSendForApproval(onRefresh);
+  });
+
+  downloadCsvButton.addEventListener("click", async () => {
+    const state = getState();
+    const ordersToExport = getOrdersForActiveStatusExport(state);
+    if (!ordersToExport.length) {
+      showModal({
+        title: "No data",
+        message: "No orders are available for this status.",
+      });
+      return;
+    }
+
+    showLoading();
+    try {
+      const result = await window.appBridge?.exportOrdersStatusCsv?.({
+        status: state.activeStatus,
+        orders: ordersToExport,
+      });
+
+      if (!result?.ok) {
+        showModal({
+          title: "CSV export",
+          message: result?.message || "Unable to export orders CSV.",
+        });
+        return;
+      }
+
+      const label =
+        STATUS_LABELS.find((status) => status.key === state.activeStatus)?.label || "Orders";
+      showModal({
+        title: "CSV export",
+        message: `${label} CSV exported successfully. Rows: ${result.data?.row_count || 0}.`,
+      });
+    } finally {
+      hideLoading();
+    }
   });
 
   refreshBtn.addEventListener("click", onRefresh);

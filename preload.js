@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld("appBridge", {
     ipcRenderer.invoke("list-batch-prepared-product-details", payload),
   listBatchDetailedInfo: (payload) => ipcRenderer.invoke("list-batch-detailed-info", payload),
   listOrderBatchLinks: () => ipcRenderer.invoke("list-order-batch-links"),
+  setOrderAssignee: (payload) => ipcRenderer.invoke("set-order-assignee", payload),
   addOrderToBatch: (payload) => ipcRenderer.invoke("add-order-to-batch", payload),
   removeOrderFromBatch: (payload) => ipcRenderer.invoke("remove-order-from-batch", payload),
   moveOrderToBatch: (payload) => ipcRenderer.invoke("move-order-to-batch", payload),
@@ -39,5 +40,6 @@ contextBridge.exposeInMainWorld("appBridge", {
   listBatchStageStatus: (payload) => ipcRenderer.invoke("list-batch-stage-status", payload),
   setBatchCompleted: (payload) => ipcRenderer.invoke("set-batch-completed", payload),
   exportBatchBookDetailsExcel: (payload) => ipcRenderer.invoke("export-batch-bookdetails-excel", payload),
+  exportOrdersStatusCsv: (payload) => ipcRenderer.invoke("export-orders-status-csv", payload),
   deleteBatch: (batchId) => ipcRenderer.invoke("delete-batch", batchId),
 });

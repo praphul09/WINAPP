@@ -8,6 +8,7 @@ const console = require("console");
 let mainWindow = null;
 let batchesWindow = null;
 let batchRegistryDb = null;
+let assigneeDb = null;
 
 const BATCH_ROOT_DIR = "\\\\pixartnas\\home\\INTERNAL_PROCESSING\\BATCHES";
 const BATCH_BACKUP_DIR = "\\\\pixartnas\\home\\INTERNAL_PROCESSING\\BATCHES_BACKUP";
@@ -16,7 +17,8 @@ const BOOK_DETAIL_JSON_PATH = "\\\\pixartnas\\home\\INTERNAL_PROCESSING\\BOOKDET
 const BOOK_GENERATOR_SCRIPT_PATH = path.join(__dirname, "book_generator", "generate_books.py");
 const SAMPLE_COVER_ROOT = "\\\\pixartnas\\home\\INTERNAL_PROCESSING\\SAMPLECOVER";
 const ALL_PHOTOS2_ROOT = "\\\\pixartnas\\home\\INTERNAL_PROCESSING\\ALL_PHOTOS2";
-const EXTERNAL_STUDENT_REGENERATE_SCRIPT = "F:\\workspace\\ProductCreation\\app\\regenerate_student_wrapper.py";//String(process.env.WINAPP_STUDENT_REGENERATE_SCRIPT || "").trim();
+const EXTERNAL_STUDENT_REGENERATE_SCRIPT = "C:\\WORKSPACE\\ProductCreation\\app\\regenerate_student_wrapper.py";//String(process.env.WINAPP_STUDENT_REGENERATE_SCRIPT || "").trim();
+const ASSIGNEE_DB_FILE_NAME = "assigenfor.db";
 const MAX_BUCKETS = 12;
 const BASKETS_PER_BUCKET = 12;
 const STUDENTS_PER_BASKET = 12;
@@ -27,6 +29,7 @@ const BOOK_SIZE_ORDER = {
   MEDIUM: 1,
   SMALL: 2,
 };
+const ORDER_ASSIGNEES = ["Jagadish", "Ashwin", "Surya", "other"];
 
 const ensureBatchRegistrySchema = (db) => {
   db.exec(`
@@ -78,6 +81,31 @@ const ensureBatchRegistrySchema = (db) => {
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_batches_single_active ON batches(active) WHERE active = 1;");
 };
 
+const normalizeOrderAssignee = (value) => {
+  const normalized = String(value || "").trim().toLowerCase();
+  const matched = ORDER_ASSIGNEES.find((candidate) => candidate.toLowerCase() === normalized);
+  return matched || null;
+};
+
+const ensureAssigneeDbSchema = (db) => {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS order_assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_number TEXT NOT NULL UNIQUE,
+      school_name TEXT,
+      assigned_to TEXT NOT NULL DEFAULT 'other',
+      updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_order_assignments_order_number ON order_assignments(order_number);
+  `);
+
+  const columns = db.prepare("PRAGMA table_info(order_assignments)").all();
+  const hasSchoolNameColumn = columns.some((column) => column.name === "school_name");
+  if (!hasSchoolNameColumn) {
+    db.exec("ALTER TABLE order_assignments ADD COLUMN school_name TEXT;");
+  }
+};
+
 const getBatchRegistryDb = () => {
   if (batchRegistryDb) return batchRegistryDb;
   if (!fs.existsSync(BATCH_ROOT_DIR)) {
@@ -87,6 +115,93 @@ const getBatchRegistryDb = () => {
   batchRegistryDb = new Database(registryPath);
   ensureBatchRegistrySchema(batchRegistryDb);
   return batchRegistryDb;
+};
+
+const migrateLegacyAssigneeData = (registryDb, targetDb) => {
+  const hasLegacyTable = registryDb
+    .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'order_assignments'")
+    .get();
+  if (!hasLegacyTable) {
+    return;
+  }
+
+  const existingCount = Number(
+    targetDb.prepare("SELECT COUNT(*) AS c FROM order_assignments").get()?.c || 0
+  );
+  if (existingCount > 0) {
+    return;
+  }
+
+  const legacyColumns = registryDb.prepare("PRAGMA table_info(order_assignments)").all();
+  const hasLegacySchoolNameColumn = legacyColumns.some((column) => column.name === "school_name");
+  const legacyRows = registryDb
+    .prepare(
+      hasLegacySchoolNameColumn
+        ? "SELECT order_number, school_name, assigned_to, updated_at FROM order_assignments"
+        : "SELECT order_number, assigned_to, updated_at FROM order_assignments"
+    )
+    .all();
+  if (!legacyRows.length) {
+    return;
+  }
+
+  const insert = targetDb.prepare(`
+    INSERT INTO order_assignments (order_number, school_name, assigned_to, updated_at)
+    VALUES (?, ?, ?, ?)
+  `);
+  const transaction = targetDb.transaction((rows) => {
+    rows.forEach((row) => {
+      insert.run(
+        String(row.order_number || "").trim(),
+        row.school_name ? String(row.school_name) : null,
+        normalizeOrderAssignee(row.assigned_to) || "other",
+        row.updated_at || new Date().toISOString()
+      );
+    });
+  });
+  transaction(legacyRows);
+};
+
+const backfillAssigneeSchoolNames = (registryDb, targetDb) => {
+  const rows = registryDb
+    .prepare(`
+      SELECT order_number, school_name
+      FROM batch_orders
+      WHERE COALESCE(TRIM(order_number), '') != ''
+        AND COALESCE(TRIM(school_name), '') != ''
+    `)
+    .all();
+  if (!rows.length) {
+    return;
+  }
+
+  const update = targetDb.prepare(`
+    UPDATE order_assignments
+    SET school_name = ?
+    WHERE order_number = ?
+      AND COALESCE(TRIM(school_name), '') = ''
+  `);
+  const transaction = targetDb.transaction((items) => {
+    items.forEach((row) => {
+      update.run(String(row.school_name || "").trim(), String(row.order_number || "").trim());
+    });
+  });
+  transaction(rows);
+};
+
+const getAssigneeDb = () => {
+  if (assigneeDb) return assigneeDb;
+  if (!fs.existsSync(BATCH_ROOT_DIR)) {
+    throw new Error("Batch storage location not found.");
+  }
+
+  const dbPath = path.join(BATCH_ROOT_DIR, ASSIGNEE_DB_FILE_NAME);
+  assigneeDb = new Database(dbPath);
+  ensureAssigneeDbSchema(assigneeDb);
+  const registryDb = getBatchRegistryDb();
+  migrateLegacyAssigneeData(registryDb, assigneeDb);
+  backfillAssigneeSchoolNames(registryDb, assigneeDb);
+  return assigneeDb;
 };
 
 const ensureBatchDbSchema = (db) => {
@@ -2254,6 +2369,16 @@ const escapeCsvCell = (value) => {
   return text;
 };
 
+const toSafeFileNamePart = (value, fallback = "export") => {
+  const sanitized = String(value || "")
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return sanitized || fallback;
+};
+
 const exportBatchBookDetailsExcel = async ({ batchId }) => {
   const normalizedBatchId = Number(batchId);
   if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
@@ -2289,11 +2414,7 @@ const exportBatchBookDetailsExcel = async ({ batchId }) => {
       lines.push(headers.map((header) => escapeCsvCell(row[header])).join(","));
     });
 
-    const safeBatchName = String(batch.batch_name || `batch-${batch.id}`)
-      .trim()
-      .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-");
+    const safeBatchName = toSafeFileNamePart(batch.batch_name || `batch-${batch.id}`, `batch-${batch.id}`);
     const defaultFileName = `${safeBatchName || `batch-${batch.id}`}-BookDetails.csv`;
     const saveResult = await dialog.showSaveDialog({
       title: "Export BookDetails to Excel-compatible CSV",
@@ -2321,6 +2442,61 @@ const exportBatchBookDetailsExcel = async ({ batchId }) => {
       batchDb.close();
     }
   }
+};
+
+const exportOrdersStatusCsv = async ({ status, orders }) => {
+  const normalizedOrders = Array.isArray(orders) ? orders : [];
+  if (!normalizedOrders.length) {
+    return { ok: false, message: "No orders available to export." };
+  }
+
+  const normalizedStatus = String(status || "orders").trim().toLowerCase() || "orders";
+  const headers = [
+    "order_number",
+    "school_id",
+    "school_name",
+    "order_date",
+    "status",
+    "assigned_to",
+    "personalized",
+    "product_id",
+    "product_type",
+    "order_type",
+    "batch_id",
+    "batch_name",
+    "batch_status",
+    "batch_added_at",
+  ];
+
+  const lines = [headers.map((header) => escapeCsvCell(header)).join(",")];
+  normalizedOrders.forEach((order) => {
+    lines.push(
+      headers
+        .map((header) => escapeCsvCell(order?.[header]))
+        .join(",")
+    );
+  });
+
+  const datePart = new Date().toISOString().slice(0, 10);
+  const defaultFileName = `${toSafeFileNamePart(normalizedStatus, "orders")}-orders-${datePart}.csv`;
+  const saveResult = await dialog.showSaveDialog({
+    title: `Export ${normalizedStatus} orders to CSV`,
+    defaultPath: path.join(app.getPath("documents"), defaultFileName),
+    filters: [{ name: "CSV", extensions: ["csv"] }],
+  });
+  if (saveResult.canceled || !saveResult.filePath) {
+    return { ok: false, message: "Export cancelled." };
+  }
+
+  fs.writeFileSync(saveResult.filePath, `\uFEFF${lines.join("\r\n")}`, "utf8");
+  return {
+    ok: true,
+    data: {
+      status: normalizedStatus,
+      row_count: normalizedOrders.length,
+      file_path: saveResult.filePath,
+    },
+  };
 };
 
 const listBatchOrders = (batchId) => {
@@ -3227,6 +3403,14 @@ const moveProductDetailToPrintLater = ({ batchId, productDetailSourceId }) => {
 
 const listOrderBatchLinks = () => {
   const db = getBatchRegistryDb();
+  const assignmentDb = getAssigneeDb();
+  const assignedByOrder = new Map(
+    assignmentDb
+      .prepare("SELECT order_number, assigned_to FROM order_assignments")
+      .all()
+      .map((row) => [String(row.order_number || "").trim(), String(row.assigned_to || "").trim()])
+  );
+
   return db
     .prepare(`
       SELECT
@@ -3238,7 +3422,73 @@ const listOrderBatchLinks = () => {
       FROM batch_orders bo
       INNER JOIN batches b ON b.id = bo.batch_id
     `)
+    .all()
+    .map((row) => ({
+      ...row,
+      assigned_to: String(assignedByOrder.get(String(row.order_number || "").trim()) || "").trim(),
+    }));
+};
+
+const listOrderAssignments = () => {
+  const db = getAssigneeDb();
+  return db
+    .prepare(`
+      SELECT order_number, school_name, assigned_to, updated_at
+      FROM order_assignments
+    `)
     .all();
+};
+
+const setOrderAssignee = ({ orderNumber, assignee, currentStatus, schoolName }) => {
+  const normalizedOrderNumber = String(orderNumber || "").trim();
+  const normalizedStatus = String(currentStatus || "").trim().toLowerCase();
+  const normalizedAssignee = normalizeOrderAssignee(assignee);
+  const normalizedSchoolName = String(schoolName || "").trim() || null;
+  const isClearingAssignee = String(assignee || "").trim() === "";
+
+  if (!normalizedOrderNumber) {
+    return { ok: false, message: "Order number is required." };
+  }
+  if (normalizedStatus !== "new" && normalizedStatus !== "freeze") {
+    return { ok: false, message: "Assignee can change only for orders with status 'new' or 'freeze'." };
+  }
+  if (!isClearingAssignee && !normalizedAssignee) {
+    return { ok: false, message: "Invalid assignee selected." };
+  }
+
+  const db = getAssigneeDb();
+  const updatedAt = new Date().toISOString();
+  if (isClearingAssignee) {
+    db.prepare("DELETE FROM order_assignments WHERE order_number = ?").run(normalizedOrderNumber);
+    return {
+      ok: true,
+      data: {
+        order_number: normalizedOrderNumber,
+        school_name: normalizedSchoolName,
+        assigned_to: "",
+        updated_at: updatedAt,
+      },
+    };
+  }
+
+  db.prepare(`
+    INSERT INTO order_assignments (order_number, school_name, assigned_to, updated_at)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(order_number) DO UPDATE SET
+      school_name = excluded.school_name,
+      assigned_to = excluded.assigned_to,
+      updated_at = excluded.updated_at
+  `).run(normalizedOrderNumber, normalizedSchoolName, normalizedAssignee, updatedAt);
+
+  return {
+    ok: true,
+    data: {
+      order_number: normalizedOrderNumber,
+      school_name: normalizedSchoolName,
+      assigned_to: normalizedAssignee,
+      updated_at: updatedAt,
+    },
+  };
 };
 
 const addOrderToBatch = ({
@@ -3945,6 +4195,7 @@ const createBatchesWindow = () => {
 
 app.whenReady().then(() => {
   getBatchRegistryDb();
+  getAssigneeDb();
   mainWindow = createWindow();
   ipcMain.handle("open-batches-window", () => {
     createBatchesWindow();
@@ -4011,9 +4262,22 @@ app.whenReady().then(() => {
   });
   ipcMain.handle("list-order-batch-links", () => {
     try {
-      return { ok: true, data: listOrderBatchLinks() };
+      return {
+        ok: true,
+        data: {
+          batch_links: listOrderBatchLinks(),
+          order_assignments: listOrderAssignments(),
+        },
+      };
     } catch (error) {
       return { ok: false, message: error.message || "Unable to load batch assignments." };
+    }
+  });
+  ipcMain.handle("set-order-assignee", (_event, payload) => {
+    try {
+      return setOrderAssignee(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to update order assignee." };
     }
   });
   ipcMain.handle("add-order-to-batch", (_event, payload) => {
@@ -4156,6 +4420,13 @@ app.whenReady().then(() => {
       return { ok: false, message: error.message || "Unable to export BookDetails." };
     }
   });
+  ipcMain.handle("export-orders-status-csv", async (_event, payload) => {
+    try {
+      return await exportOrdersStatusCsv(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to export orders CSV." };
+    }
+  });
   ipcMain.handle("create-batch", (_event, batchName) => {
     const rootDir = BATCH_ROOT_DIR;
     if (!batchName || typeof batchName !== "string") {
@@ -4289,6 +4560,10 @@ app.on("window-all-closed", () => {
   if (batchRegistryDb) {
     batchRegistryDb.close();
     batchRegistryDb = null;
+  }
+  if (assigneeDb) {
+    assigneeDb.close();
+    assigneeDb = null;
   }
   if (process.platform !== "darwin") {
     app.quit();
