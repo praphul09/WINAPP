@@ -7,6 +7,8 @@ const countLabel = document.getElementById("batch-count");
 const tableBody = document.getElementById("batches-body");
 const refreshLabel = document.getElementById("batches-refresh");
 const refreshButton = document.getElementById("refresh-batches");
+const batchNameFilterInput = document.getElementById("batch-name-filter");
+const batchNameFilterOptions = document.getElementById("batch-name-filter-options");
 const createForm = document.getElementById("create-batch-form");
 const batchNameInput = document.getElementById("batch-name");
 const batchStatus = document.getElementById("batch-status");
@@ -43,10 +45,13 @@ let duplicateTitle = null;
 let duplicateBody = null;
 let moveOrderBackdrop = null;
 let moveOrderSelect = null;
+let moveOrderFilterInput = null;
 let moveOrderTitle = null;
 let moveOrderConfirmButton = null;
 let moveOrderCancelButton = null;
 let moveOrderResolve = null;
+let moveOrderCandidates = [];
+let activeBatchNameFilter = "";
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -180,6 +185,7 @@ const ensureMoveOrderModal = () => {
       <div class="modal-body">
         <div class="form-row" style="align-items: flex-start; flex-direction: column; gap: 10px;">
           <label for="move-order-target-batch">Select target batch (status: new)</label>
+          <input id="move-order-filter" class="text-input" type="text" placeholder="Type batch name" autocomplete="off" />
           <select id="move-order-target-batch" class="text-input" style="width: 100%; min-width: 0;"></select>
           <button class="primary-button" id="move-order-confirm" type="button">Move</button>
         </div>
@@ -189,6 +195,7 @@ const ensureMoveOrderModal = () => {
 
   document.body.appendChild(moveOrderBackdrop);
   moveOrderTitle = document.getElementById("move-order-title");
+  moveOrderFilterInput = document.getElementById("move-order-filter");
   moveOrderSelect = document.getElementById("move-order-target-batch");
   moveOrderConfirmButton = document.getElementById("move-order-confirm");
   moveOrderCancelButton = document.getElementById("move-order-cancel");
@@ -208,6 +215,17 @@ const ensureMoveOrderModal = () => {
       closeModal(null);
     }
   });
+  moveOrderFilterInput?.addEventListener("input", () => {
+    const keyword = String(moveOrderFilterInput?.value || "").trim().toLowerCase();
+    const filteredCandidates = !keyword
+      ? moveOrderCandidates
+      : moveOrderCandidates.filter((candidate) =>
+          `${candidate.id} - ${candidate.batchName}`.toLowerCase().includes(keyword)
+        );
+    moveOrderSelect.innerHTML = filteredCandidates
+      .map((candidate) => `<option value="${candidate.id}">${candidate.id} - ${candidate.batchName}</option>`)
+      .join("");
+  });
   moveOrderConfirmButton?.addEventListener("click", () => {
     const value = Number(String(moveOrderSelect?.value || "").trim());
     if (!Number.isInteger(value) || value <= 0) {
@@ -224,7 +242,11 @@ const promptMoveOrderTargetBatch = (orderNumber, candidates) => {
   }
 
   moveOrderTitle.textContent = `Move order ${orderNumber}`;
-  moveOrderSelect.innerHTML = candidates
+  moveOrderCandidates = Array.isArray(candidates) ? candidates : [];
+  if (moveOrderFilterInput) {
+    moveOrderFilterInput.value = "";
+  }
+  moveOrderSelect.innerHTML = moveOrderCandidates
     .map((candidate) => `<option value="${candidate.id}">${candidate.id} - ${candidate.batchName}</option>`)
     .join("");
 
@@ -1769,10 +1791,45 @@ const renderTabs = (activeKey, counts) => {
 
 let currentData = getInitialData();
 
+const syncBatchNameFilterOptions = (batches) => {
+  if (!batchNameFilterOptions) return;
+
+  const uniqueNames = Array.from(
+    new Set(
+      (Array.isArray(batches) ? batches : [])
+        .map((batch) => String(batch?.batchName || batch?.batch_name || "").trim())
+        .filter(Boolean)
+    )
+  ).sort((left, right) => left.localeCompare(right));
+
+  batchNameFilterOptions.innerHTML = "";
+  uniqueNames.forEach((name) => {
+    const option = document.createElement("option");
+    option.value = name;
+    batchNameFilterOptions.appendChild(option);
+  });
+};
+
 const render = (data) => {
   currentData = data;
   const all = data.map((batch) => normalizeBatch(batch));
-  const filtered = activeTab === "all" ? all : all.filter((batch) => batch.status === activeTab);
+  syncBatchNameFilterOptions(all);
+  if (batchNameFilterInput) {
+    batchNameFilterInput.value = activeBatchNameFilter;
+  }
+
+  const statusFiltered = activeTab === "all" ? all : all.filter((batch) => batch.status === activeTab);
+  const normalizedBatchNameFilter = String(activeBatchNameFilter || "").trim().toLowerCase();
+  const filtered = !normalizedBatchNameFilter
+    ? statusFiltered
+    : statusFiltered.filter((batch) => {
+        const batchName = String(batch.batchName || "").toLowerCase();
+        const batchId = String(batch.id || "").toLowerCase();
+        return (
+          batchName.includes(normalizedBatchNameFilter) ||
+          batchId.includes(normalizedBatchNameFilter)
+        );
+      });
 
   const counts = {
     all: all.length,
@@ -1854,6 +1911,13 @@ if (createForm && batchNameInput && window.appBridge?.createBatch) {
   });
 } else if (batchStatus) {
   setStatus("Batch creation is not available in this build.", "error");
+}
+
+if (batchNameFilterInput) {
+  batchNameFilterInput.addEventListener("input", (event) => {
+    activeBatchNameFilter = String(event.target.value || "").trim();
+    render(currentData);
+  });
 }
 
 refreshAllBatches();

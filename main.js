@@ -2466,6 +2466,8 @@ const exportOrdersStatusCsv = async ({ status, orders }) => {
     "batch_name",
     "batch_status",
     "batch_added_at",
+    "class_wise_count",
+    "total_count",
   ];
 
   const lines = [headers.map((header) => escapeCsvCell(header)).join(",")];

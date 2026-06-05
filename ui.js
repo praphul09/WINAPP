@@ -36,9 +36,11 @@ const ordersBody = document.getElementById("orders-body");
 const refreshBtn = document.getElementById("refresh-btn");
 const lastRefresh = document.getElementById("last-refresh");
 const nameFilterInput = document.createElement("input");
+const statusFilterSelect = document.createElement("select");
 const orderTypeFilterSelect = document.createElement("select");
 const assigneeFilterSelect = document.createElement("select");
-const batchFilterSelect = document.createElement("select");
+const batchFilterInput = document.createElement("input");
+const batchFilterOptions = document.createElement("datalist");
 const selectAllOrdersInput = document.getElementById("select-all-orders");
 const bulkPdfButton = document.createElement("button");
 const bulkSendForApprovalButton = document.createElement("button");
@@ -62,16 +64,23 @@ const nameFiltersByStatus = new Map();
 const selectedOrdersByStatus = new Map();
 let currentVisibleOrders = [];
 let jsPdfLoaderPromise = null;
+let activeStatusFilter = "all";
 let activeOrderTypeFilter = "all";
 let activeAssigneeFilter = "all";
-let activeBatchFilter = "all";
+let activeBatchFilter = "";
+const orderCountSummaryCache = new Map();
+const ORDER_COUNT_BATCH_SIZE = 20;
+const pendingOrderCountQueue = new Map();
+let orderCountBatchProcessing = false;
 let batchPickerBackdrop = null;
 let batchPickerTitle = null;
 let batchPickerMessage = null;
+let batchPickerFilterInput = null;
 let batchPickerSelect = null;
 let batchPickerConfirm = null;
 let batchPickerCancel = null;
 let batchPickerResolve = null;
+let batchPickerOptions = [];
 let assigneePickerBackdrop = null;
 let assigneePickerTitle = null;
 let assigneePickerMessage = null;
@@ -124,14 +133,18 @@ const getNormalizedBatchFilterValue = (order) => {
 const getBatchFilterOptions = (orders) => {
   const unique = new Map();
   (Array.isArray(orders) ? orders : []).forEach((order) => {
-    const value = getNormalizedBatchFilterValue(order);
-    if (value === "unassigned") {
+    const batchId = String(order?.batch_id || "").trim();
+    const batchName = String(order?.batch_name || "").trim();
+    const label = batchName || batchId;
+    if (!label) {
       return;
     }
-    if (!unique.has(value)) {
-      unique.set(value, {
-        value,
-        label: String(order?.batch_name || order?.batch_id || "").trim() || "Unnamed batch",
+
+    const key = batchId || label.toLowerCase();
+    if (!unique.has(key)) {
+      unique.set(key, {
+        value: label,
+        label,
       });
     }
   });
@@ -141,20 +154,54 @@ const getBatchFilterOptions = (orders) => {
 
 const syncBatchFilterOptions = (orders) => {
   const options = getBatchFilterOptions(orders);
-  const nextValue =
-    activeBatchFilter === "all" ||
-    activeBatchFilter === "unassigned" ||
-    options.some((option) => option.value === activeBatchFilter)
-      ? activeBatchFilter
-      : "all";
+  batchFilterOptions.innerHTML = [
+    `<option value="Unassigned"></option>`,
+    ...options.map((option) => `<option value="${escapeHtml(option.label)}"></option>`),
+  ].join("");
+  batchFilterInput.value = activeBatchFilter;
+};
 
-  batchFilterSelect.innerHTML = `
-    <option value="all">All batches</option>
-    <option value="unassigned">Unassigned</option>
-    ${options.map((option) => `<option value="${option.value}">${option.label}</option>`).join("")}
-  `;
-  activeBatchFilter = nextValue;
-  batchFilterSelect.value = nextValue;
+const syncStatusFilterVisibility = (activeStatus) => {
+  if (!statusFilterSelect) return;
+  const showStatusFilter = activeStatus === "all";
+  statusFilterSelect.classList.toggle("hidden", !showStatusFilter);
+  statusFilterSelect.disabled = !showStatusFilter;
+  if (!showStatusFilter) {
+    statusFilterSelect.value = "all";
+  }
+};
+
+const getVisibleOrders = (state) => {
+  const statusFiltered =
+    state.activeStatus === "all"
+      ? state.orders.filter((order) =>
+          activeStatusFilter === "all" ? true : order.status === activeStatusFilter
+        )
+      : state.orders.filter((order) => order.status === state.activeStatus);
+  const activeNameFilter = getNameFilterForStatus(state.activeStatus);
+  return statusFiltered.filter((order) => {
+    const matchesType =
+      activeOrderTypeFilter === "all" ||
+      getNormalizedOrderType(order) === activeOrderTypeFilter;
+    if (!matchesType) return false;
+    const matchesAssignee =
+      activeAssigneeFilter === "all" ||
+      getNormalizedAssignee(order) === activeAssigneeFilter;
+    if (!matchesAssignee) return false;
+    const normalizedBatchFilter = String(activeBatchFilter || "").trim().toLowerCase();
+    const batchLabel = String(order.batch_name || order.batch_id || "").trim().toLowerCase();
+    const batchId = String(order.batch_id || "").trim().toLowerCase();
+    const unassignedLabel = !order.batch_id && !order.batch_name ? "unassigned" : "";
+    const matchesBatch =
+      !normalizedBatchFilter ||
+      batchLabel.includes(normalizedBatchFilter) ||
+      batchId.includes(normalizedBatchFilter) ||
+      unassignedLabel.includes(normalizedBatchFilter);
+    if (!matchesBatch) return false;
+    if (!activeNameFilter) return true;
+    const name = String(order.school_name || order.name || "").toLowerCase();
+    return name.includes(activeNameFilter);
+  });
 };
 
 const getSelectedOrdersForStatus = (status) => {
@@ -423,6 +470,240 @@ const normalizeOrderDetail = (item) => {
       secGuardian?.sec_guardian_image
     ),
   };
+};
+
+const getStudentClassMeta = (student) => {
+  const classSection =
+    student?.user?.student?.class_section ||
+    student?.student?.class_section ||
+    {};
+  const nestedClass = classSection?.class || {};
+  const classId = String(
+    student?.class_id ||
+    student?.classId ||
+    nestedClass?.id ||
+    classSection?.class_id ||
+    ""
+  ).trim();
+  const className = String(
+    student?.class_name ||
+    student?.className ||
+    student?.grade ||
+    nestedClass?.full_name ||
+    nestedClass?.name ||
+    classSection?.full_name ||
+    classSection?.name ||
+    ""
+  ).trim();
+
+  return { classId, className };
+};
+
+const buildOrderCountSummaryFromStudents = (students, responseClasses = [], explicitTotalCount = null) => {
+  const classCounts = new Map();
+  const classNamesById = new Map();
+  const orderedKeys = [];
+
+  responseClasses.forEach((item) => {
+    const classId = String(item?.id || "").trim();
+    const className = String(item?.name || "").trim();
+    const key = classId || className;
+    if (!key) {
+      return;
+    }
+
+    classNamesById.set(key, className || classId || "-");
+    if (!orderedKeys.includes(key)) {
+      orderedKeys.push(key);
+    }
+  });
+
+  (Array.isArray(students) ? students : []).forEach((student) => {
+    const { classId, className } = getStudentClassMeta(student);
+    const key = classId || className || "-";
+    const label = className || classNamesById.get(key) || key || "-";
+
+    if (!classNamesById.has(key)) {
+      classNamesById.set(key, label);
+    }
+    if (!orderedKeys.includes(key)) {
+      orderedKeys.push(key);
+    }
+
+    classCounts.set(key, (classCounts.get(key) || 0) + 1);
+  });
+
+  const classWiseCount = orderedKeys
+    .map((key) => {
+      const label = classNamesById.get(key) || key || "-";
+      const count = classCounts.get(key) || 0;
+      return `${label}: ${count}`;
+    })
+    .join(" | ");
+
+  const normalizedExplicitTotal = Number(explicitTotalCount);
+  const totalCount =
+    Number.isFinite(normalizedExplicitTotal) && normalizedExplicitTotal >= 0
+      ? normalizedExplicitTotal
+      : (Array.isArray(students) ? students.length : 0);
+
+  return {
+    class_wise_count: classWiseCount,
+    total_count: totalCount,
+    counts_loaded: true,
+  };
+};
+
+const buildOrderCountSummary = (responseData) => {
+  const details = getOrderDetailItems(responseData);
+  const explicitTotalCount = responseData?.count;
+  return buildOrderCountSummaryFromStudents(details, getClassesFromResponse(responseData), explicitTotalCount);
+};
+
+const buildOrderCountSummariesFromBatchResponse = (responseData) => {
+  const summaries = new Map();
+  const schools = normalizePdfResponseSchools(responseData);
+
+  schools.forEach((school) => {
+    const schoolClasses = Array.isArray(school?.classes) ? school.classes : [];
+    const orders = Array.isArray(school?.orders) ? school.orders : [];
+
+    orders.forEach((order) => {
+      const orderNumber = String(order?.order_id || order?.order_number || order?.id || "").trim();
+      if (!orderNumber) {
+        return;
+      }
+
+      const orderClasses = Array.isArray(order?.classes) ? order.classes : schoolClasses;
+      const explicitTotalCount = order?.total_count ?? order?.student_count ?? order?.count;
+      summaries.set(
+        orderNumber,
+        buildOrderCountSummaryFromStudents(order?.students, orderClasses, explicitTotalCount)
+      );
+    });
+  });
+
+  if (!summaries.size) {
+    const orderNumber = String(responseData?.order_id || responseData?.order_number || "").trim();
+    if (orderNumber) {
+      summaries.set(orderNumber, buildOrderCountSummary(responseData));
+    }
+  }
+
+  return summaries;
+};
+
+const emptyOrderCountSummary = () => ({
+  class_wise_count: "",
+  total_count: 0,
+  counts_loaded: true,
+});
+
+const fetchOrderCountSummariesForOrders = async (orders) => {
+  const summaries = new Map();
+  const missingOrders = (Array.isArray(orders) ? orders : []).filter((order) => {
+    const orderNumber = String(order?.order_number || "").trim();
+    if (!orderNumber) {
+      return false;
+    }
+    if (orderCountSummaryCache.has(orderNumber)) {
+      summaries.set(orderNumber, orderCountSummaryCache.get(orderNumber));
+      return false;
+    }
+    return true;
+  });
+
+  for (let index = 0; index < missingOrders.length; index += ORDER_COUNT_BATCH_SIZE) {
+    const chunk = missingOrders.slice(index, index + ORDER_COUNT_BATCH_SIZE);
+    const chunkOrderNumbers = chunk
+      .map((order) => String(order?.order_number || "").trim())
+      .filter(Boolean);
+
+    if (!chunkOrderNumbers.length) {
+      continue;
+    }
+
+    const result = await callApi(API_ENDPOINTS.studentDetailsByOrders, {
+      order_ids: chunkOrderNumbers,
+    });
+
+    const chunkSummaries = result?.ok
+      ? buildOrderCountSummariesFromBatchResponse(result.data)
+      : new Map();
+
+    chunkOrderNumbers.forEach((orderNumber) => {
+      const summary = chunkSummaries.get(orderNumber) || emptyOrderCountSummary();
+      orderCountSummaryCache.set(orderNumber, summary);
+      summaries.set(orderNumber, summary);
+    });
+  }
+
+  return summaries;
+};
+
+const enrichOrdersForCsvExport = async (orders) => {
+  const summaries = await fetchOrderCountSummariesForOrders(orders);
+  return (Array.isArray(orders) ? orders : []).map((order) => {
+    const orderNumber = String(order?.order_number || "").trim();
+    return {
+      ...order,
+      ...(summaries.get(orderNumber) || emptyOrderCountSummary()),
+    };
+  });
+};
+
+const processPendingOrderCountQueue = () => {
+  if (orderCountBatchProcessing) {
+    return;
+  }
+
+  orderCountBatchProcessing = true;
+  const run = async () => {
+    try {
+      while (pendingOrderCountQueue.size > 0) {
+        const chunkEntries = Array.from(pendingOrderCountQueue.entries()).slice(0, ORDER_COUNT_BATCH_SIZE);
+        chunkEntries.forEach(([orderNumber]) => {
+          pendingOrderCountQueue.delete(orderNumber);
+        });
+
+        const orders = chunkEntries.map(([, order]) => order);
+        const summaries = await fetchOrderCountSummariesForOrders(orders);
+
+        chunkEntries.forEach(([orderNumber]) => {
+          updateOrder(orderNumber, summaries.get(orderNumber) || emptyOrderCountSummary());
+        });
+      }
+    } finally {
+      orderCountBatchProcessing = false;
+      if (pendingOrderCountQueue.size > 0) {
+        processPendingOrderCountQueue();
+      }
+    }
+  };
+
+  run();
+};
+
+const hydrateVisibleOrderCounts = (orders) => {
+  (Array.isArray(orders) ? orders : []).forEach((order) => {
+    if (order?.counts_loaded) {
+      return;
+    }
+
+    const orderNumber = String(order?.order_number || "").trim();
+    if (!orderNumber) {
+      return;
+    }
+
+    if (orderCountSummaryCache.has(orderNumber)) {
+      updateOrder(orderNumber, orderCountSummaryCache.get(orderNumber));
+      return;
+    }
+
+    pendingOrderCountQueue.set(orderNumber, order);
+  });
+
+  processPendingOrderCountQueue();
 };
 
 const normalizeClassOption = (item) => {
@@ -714,6 +995,7 @@ const ensureBatchPickerModal = () => {
       </div>
       <div class="modal-body">
         <p id="batch-picker-message"></p>
+        <input id="batch-picker-filter" class="text-input" type="text" placeholder="Type batch name" autocomplete="off" />
         <select id="batch-picker-select" class="text-input"></select>
         <div class="form-row">
           <button id="batch-picker-confirm" class="primary-button" type="button">Add order</button>
@@ -726,6 +1008,7 @@ const ensureBatchPickerModal = () => {
   batchPickerBackdrop = document.getElementById("batch-picker-backdrop");
   batchPickerTitle = document.getElementById("batch-picker-title");
   batchPickerMessage = document.getElementById("batch-picker-message");
+  batchPickerFilterInput = document.getElementById("batch-picker-filter");
   batchPickerSelect = document.getElementById("batch-picker-select");
   batchPickerConfirm = document.getElementById("batch-picker-confirm");
   batchPickerCancel = document.getElementById("batch-picker-cancel");
@@ -745,6 +1028,15 @@ const ensureBatchPickerModal = () => {
       close(null);
     }
   });
+  batchPickerFilterInput?.addEventListener("input", () => {
+    const keyword = String(batchPickerFilterInput?.value || "").trim().toLowerCase();
+    const filteredOptions = !keyword
+      ? batchPickerOptions
+      : batchPickerOptions.filter((item) => item.label.toLowerCase().includes(keyword));
+    batchPickerSelect.innerHTML = filteredOptions
+      .map((item) => `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`)
+      .join("");
+  });
   batchPickerConfirm.addEventListener("click", () => {
     close(batchPickerSelect?.value || null);
   });
@@ -755,13 +1047,15 @@ const pickBatchForOrder = async (order, batches) => {
 
   batchPickerTitle.textContent = `Add order ${order.order_number} to batch`;
   batchPickerMessage.textContent = `Choose a batch for ${order.school_name || "this order"}.`;
-  batchPickerSelect.innerHTML = batches
-    .map(
-      (batch) =>
-        `<option value="${escapeHtml(batch.id)}">${escapeHtml(
-          `${batch.batch_name} (${formatDate(batch.created_at)})`
-        )}</option>`
-    )
+  batchPickerOptions = batches.map((batch) => ({
+    value: String(batch.id),
+    label: `${batch.batch_name} (${formatDate(batch.created_at)})`,
+  }));
+  if (batchPickerFilterInput) {
+    batchPickerFilterInput.value = "";
+  }
+  batchPickerSelect.innerHTML = batchPickerOptions
+    .map((item) => `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`)
     .join("");
   batchPickerBackdrop.classList.remove("hidden");
 
@@ -1703,28 +1997,8 @@ const renderActions = (order) => {
 const renderTable = (state) => {
   ordersBody.innerHTML = "";
   syncBatchFilterOptions(state.orders);
-  const statusFiltered =
-    state.activeStatus === "all"
-      ? state.orders
-      : state.orders.filter((order) => order.status === state.activeStatus);
-  const activeNameFilter = getNameFilterForStatus(state.activeStatus);
-  const filtered = statusFiltered.filter((order) => {
-    const matchesType =
-      activeOrderTypeFilter === "all" ||
-      getNormalizedOrderType(order) === activeOrderTypeFilter;
-    if (!matchesType) return false;
-    const matchesAssignee =
-      activeAssigneeFilter === "all" ||
-      getNormalizedAssignee(order) === activeAssigneeFilter;
-    if (!matchesAssignee) return false;
-    const matchesBatch =
-      activeBatchFilter === "all" ||
-      getNormalizedBatchFilterValue(order) === activeBatchFilter;
-    if (!matchesBatch) return false;
-    if (!activeNameFilter) return true;
-    const name = String(order.school_name || order.name || "").toLowerCase();
-    return name.includes(activeNameFilter);
-  });
+  syncStatusFilterVisibility(state.activeStatus);
+  const filtered = getVisibleOrders(state);
   currentVisibleOrders = filtered;
   const selected = getSelectedOrdersForStatus(state.activeStatus);
 
@@ -1732,9 +2006,10 @@ const renderTable = (state) => {
     STATUS_LABELS.find((status) => status.key === state.activeStatus)?.label ||
     "Orders";
   nameFilterInput.value = nameFiltersByStatus.get(state.activeStatus) || "";
+  statusFilterSelect.value = state.activeStatus === "all" ? activeStatusFilter : "all";
   orderTypeFilterSelect.value = activeOrderTypeFilter;
   assigneeFilterSelect.value = activeAssigneeFilter;
-  batchFilterSelect.value = activeBatchFilter;
+  batchFilterInput.value = activeBatchFilter;
 
   if (filtered.length === 0) {
     const row = document.createElement("tr");
@@ -1807,13 +2082,20 @@ const renderTable = (state) => {
 };
 
 const getOrdersForActiveStatusExport = (state) => {
-  if (state.activeStatus === "all") {
-    return [...state.orders];
-  }
-  return state.orders.filter((order) => order.status === state.activeStatus);
+  return [...getVisibleOrders(state)];
 };
 
 export const initUI = ({ onRefresh, onStatusChange }) => {
+  statusFilterSelect.id = "status-filter";
+  statusFilterSelect.className = "text-input hidden";
+  statusFilterSelect.style.maxWidth = "200px";
+  statusFilterSelect.style.minWidth = "170px";
+  statusFilterSelect.innerHTML = `
+    <option value="all">All statuses</option>
+    ${STATUS_LABELS.filter((status) => status.key !== "all")
+      .map((status) => `<option value="${status.key}">${status.label}</option>`)
+      .join("")}
+  `;
   orderTypeFilterSelect.id = "order-type-filter";
   orderTypeFilterSelect.className = "text-input";
   orderTypeFilterSelect.style.maxWidth = "220px";
@@ -1835,20 +2117,21 @@ export const initUI = ({ onRefresh, onStatusChange }) => {
     <option value="all">All assignees</option>
     ${ASSIGNEE_OPTIONS.map((name) => `<option value="${name}">${name}</option>`).join("")}
   `;
-  batchFilterSelect.id = "batch-filter";
-  batchFilterSelect.className = "text-input";
-  batchFilterSelect.style.maxWidth = "220px";
-  batchFilterSelect.style.minWidth = "180px";
-  batchFilterSelect.innerHTML = `
-    <option value="all">All batches</option>
-    <option value="unassigned">Unassigned</option>
-  `;
+  batchFilterInput.id = "batch-filter";
+  batchFilterInput.className = "text-input";
+  batchFilterInput.style.maxWidth = "240px";
+  batchFilterInput.style.minWidth = "180px";
+  batchFilterInput.placeholder = "Filter by batch name";
+  batchFilterInput.setAttribute("list", "batch-filter-options");
+  batchFilterOptions.id = "batch-filter-options";
   nameFilterInput.id = "name-filter";
   nameFilterInput.className = "text-input";
   nameFilterInput.placeholder = "Filter by name";
   nameFilterInput.style.maxWidth = "240px";
   nameFilterInput.style.minWidth = "180px";
-  refreshBtn.insertAdjacentElement("beforebegin", batchFilterSelect);
+  refreshBtn.insertAdjacentElement("beforebegin", statusFilterSelect);
+  refreshBtn.insertAdjacentElement("beforebegin", batchFilterOptions);
+  refreshBtn.insertAdjacentElement("beforebegin", batchFilterInput);
   refreshBtn.insertAdjacentElement("beforebegin", assigneeFilterSelect);
   refreshBtn.insertAdjacentElement("beforebegin", orderTypeFilterSelect);
   refreshBtn.insertAdjacentElement("beforebegin", nameFilterInput);
@@ -1871,6 +2154,11 @@ export const initUI = ({ onRefresh, onStatusChange }) => {
     renderTable(getState());
   });
 
+  statusFilterSelect.addEventListener("change", (event) => {
+    activeStatusFilter = String(event.target.value || "all");
+    renderTable(getState());
+  });
+
   orderTypeFilterSelect.addEventListener("change", (event) => {
     activeOrderTypeFilter = String(event.target.value || "all");
     renderTable(getState());
@@ -1881,8 +2169,8 @@ export const initUI = ({ onRefresh, onStatusChange }) => {
     renderTable(getState());
   });
 
-  batchFilterSelect.addEventListener("change", (event) => {
-    activeBatchFilter = String(event.target.value || "all");
+  batchFilterInput.addEventListener("input", (event) => {
+    activeBatchFilter = String(event.target.value || "").trim();
     renderTable(getState());
   });
 
@@ -1967,9 +2255,10 @@ export const initUI = ({ onRefresh, onStatusChange }) => {
 
     showLoading();
     try {
+      const enrichedOrders = await enrichOrdersForCsvExport(ordersToExport);
       const result = await window.appBridge?.exportOrdersStatusCsv?.({
         status: state.activeStatus,
-        orders: ordersToExport,
+        orders: enrichedOrders,
       });
 
       if (!result?.ok) {

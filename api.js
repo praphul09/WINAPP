@@ -27,6 +27,38 @@ const fetchWithTimeout = async (url, options = {}, timeoutMs = DEFAULT_TIMEOUT_M
   }
 };
 
+const parseResponseBody = async (response) => {
+  const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+  const text = await response.text();
+
+  if (!text) {
+    return { ok: true, data: null };
+  }
+
+  if (contentType.includes("application/json")) {
+    try {
+      return { ok: true, data: JSON.parse(text) };
+    } catch {
+      return {
+        ok: false,
+        message: `Invalid JSON response (${response.status}).`,
+      };
+    }
+  }
+
+  try {
+    return { ok: true, data: JSON.parse(text) };
+  } catch {
+    const looksLikeHtml = /^\s*</.test(text);
+    return {
+      ok: false,
+      message: looksLikeHtml
+        ? `Server returned HTML instead of JSON (${response.status}).`
+        : `Unexpected response format (${response.status}).`,
+    };
+  }
+};
+
 export const fetchOrders = async (status) => {
   try {
     const response = await fetchWithTimeout(API_ENDPOINTS.orders, {
@@ -34,8 +66,12 @@ export const fetchOrders = async (status) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: status }),
     });
-    const jsonData = await response.json();
-    
+    const parsed = await parseResponseBody(response);
+    if (!parsed.ok) {
+      return { ok: false, data: { message: parsed.message } };
+    }
+
+    const jsonData = parsed.data || {};
     const data = jsonData.data;
 
     console.log("Fetched orders:", data);
@@ -54,7 +90,12 @@ export const callApi = async (url, payload) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    const data = await response.json();
+    const parsed = await parseResponseBody(response);
+    if (!parsed.ok) {
+      return { ok: false, data: { message: parsed.message } };
+    }
+
+    const data = parsed.data;
     return { ok: response.ok, data };
   } catch (error) {
     const message =
@@ -69,7 +110,12 @@ export const callApiFormData = async (url, formData) => {
       method: "POST",
       body: formData,
     });
-    const data = await response.json();
+    const parsed = await parseResponseBody(response);
+    if (!parsed.ok) {
+      return { ok: false, data: { message: parsed.message } };
+    }
+
+    const data = parsed.data;
     return { ok: response.ok, data };
   } catch (error) {
     const message =

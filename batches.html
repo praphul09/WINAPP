@@ -56,7 +56,19 @@
         <section class="table-card">
           <div class="table-header">
             <h2 id="batch-table-title">All batches</h2>
-            <span class="panel-meta" id="batch-count">0 total</span>
+            <div class="form-row" style="justify-content: flex-end; width: 100%;">
+              <input
+                class="text-input"
+                type="text"
+                id="batch-name-filter"
+                placeholder="Filter by batch name"
+                list="batch-name-filter-options"
+                autocomplete="off"
+                style="max-width: 260px; min-width: 200px;"
+              />
+              <datalist id="batch-name-filter-options"></datalist>
+              <span class="panel-meta" id="batch-count">0 total</span>
+            </div>
           </div>
           <div class="table-wrapper">
             <table>
