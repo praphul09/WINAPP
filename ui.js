@@ -88,6 +88,28 @@ let assigneePickerSelect = null;
 let assigneePickerConfirm = null;
 let assigneePickerCancel = null;
 let assigneePickerResolve = null;
+let activeActionMenuCloser = null;
+let batchFilterOptionsSource = null;
+let pendingTableRenderFrame = null;
+
+const debounce = (callback, delay = 120) => {
+  let timeoutId = null;
+  return (...args) => {
+    window.clearTimeout(timeoutId);
+    timeoutId = window.setTimeout(() => callback(...args), delay);
+  };
+};
+
+const closeActiveActionMenu = () => {
+  if (typeof activeActionMenuCloser === "function") {
+    activeActionMenuCloser();
+  }
+  activeActionMenuCloser = null;
+};
+
+document.addEventListener("click", () => {
+  closeActiveActionMenu();
+});
 
 const toApiStatus = (status) => {
   if (status === "pending_approval") {
@@ -153,11 +175,17 @@ const getBatchFilterOptions = (orders) => {
 };
 
 const syncBatchFilterOptions = (orders) => {
+  if (batchFilterOptionsSource === orders) {
+    batchFilterInput.value = activeBatchFilter;
+    return;
+  }
+
   const options = getBatchFilterOptions(orders);
   batchFilterOptions.innerHTML = [
     `<option value="Unassigned"></option>`,
     ...options.map((option) => `<option value="${escapeHtml(option.label)}"></option>`),
   ].join("");
+  batchFilterOptionsSource = orders;
   batchFilterInput.value = activeBatchFilter;
 };
 
@@ -1172,8 +1200,14 @@ const renderStatusChip = (status) => {
 const renderBatchChip = (order) => {
   const chip = document.createElement("span");
   chip.className = "status-chip";
-  chip.textContent = order.batch_name || "-";
-  if (!order.batch_name) {
+  const batchName = String(order?.batch_name || "").trim();
+  const batchId = String(order?.batch_id || "").trim();
+  chip.textContent = batchName
+    ? batchId
+      ? `${batchName} (${batchId})`
+      : batchName
+    : "-";
+  if (!batchName) {
     chip.classList.add("chip-freeze");
     return chip;
   }
@@ -1682,6 +1716,13 @@ const addOrderToBatch = async (order, selectedBatchId) =>
     orderDate: order.order_date,
   });
 
+const moveOrderToBatch = async (order, selectedBatchId) =>
+  window.appBridge?.moveOrderToBatch?.({
+    orderNumber: order.order_number,
+    fromBatchId: order.batch_id,
+    toBatchId: Number(selectedBatchId),
+  });
+
 const removeOrderFromBatch = async (order) =>
   window.appBridge?.removeOrderFromBatch?.({
     batchId: order.batch_id,
@@ -1841,6 +1882,73 @@ const handleRemoveFromBatch = async (order) => {
   }
 };
 
+const handleChangeBatch = async (order) => {
+  if (!order.batch_id || !order.batch_name) {
+    showModal({
+      title: "Change batch",
+      message: "This order is not assigned to any batch.",
+    });
+    return;
+  }
+
+  if (order.status !== "processing" && order.batch_status !== "building" && order.batch_status !== "processing") {
+    showModal({
+      title: "Change batch",
+      message: "Batch can be changed only when the order status is 'processing' or the current batch status is 'building' or 'processing'.",
+    });
+    return;
+  }
+
+  const result = await window.appBridge?.listAvailableBatches?.();
+  if (!result?.ok) {
+    showModal({
+      title: "Change batch",
+      message: result?.message || "Unable to load available batches.",
+    });
+    return;
+  }
+
+  const candidates = (Array.isArray(result.data) ? result.data : [])
+    .filter((batch) => Number(batch.id) !== Number(order.batch_id) && batch.status === "new");
+  if (!candidates.length) {
+    showModal({
+      title: "Change batch",
+      message: "No target batch with status 'new' is available.",
+    });
+    return;
+  }
+
+  const selectedBatchId = await pickBatchForOrder(order, candidates);
+  if (!selectedBatchId) {
+    return;
+  }
+
+  showLoading();
+  try {
+    const moveResult = await moveOrderToBatch(order, selectedBatchId);
+    if (!moveResult?.ok) {
+      showModal({
+        title: "Change batch failed",
+        message: moveResult?.message || "Unable to move order to another batch.",
+      });
+      return;
+    }
+
+    updateOrder(order.order_number, {
+      batch_id: moveResult.data?.target_batch_id,
+      batch_name: moveResult.data?.target_batch_name,
+      batch_status: "new",
+      batch_added_at: moveResult.data?.moved_at,
+    });
+    showModal({
+      title: "Success",
+      message: `Order moved to batch ${moveResult.data?.target_batch_name || moveResult.data?.target_batch_id}.`,
+    });
+  } finally {
+    hideLoading();
+  }
+};
+
 const handleChangeAssignee = async (order) => {
   if (order.status !== "new" && order.status !== "freeze") {
     showModal({
@@ -1875,21 +1983,18 @@ const renderActions = (order) => {
   const closeMenu = () => {
     panel.classList.remove("open");
     trigger.setAttribute("aria-expanded", "false");
+    if (activeActionMenuCloser === closeMenu) {
+      activeActionMenuCloser = null;
+    }
   };
 
   const toggleMenu = (event) => {
     event.stopPropagation();
     const nextOpen = !panel.classList.contains("open");
-    document.querySelectorAll(".menu-panel.open").forEach((element) => {
-      if (element !== panel) {
-        element.classList.remove("open");
-      }
-    });
-    document.querySelectorAll(".menu-trigger[aria-expanded='true']").forEach((element) => {
-      if (element !== trigger) {
-        element.setAttribute("aria-expanded", "false");
-      }
-    });
+    if (nextOpen) {
+      closeActiveActionMenu();
+      activeActionMenuCloser = closeMenu;
+    }
     panel.classList.toggle("open", nextOpen);
     trigger.setAttribute("aria-expanded", String(nextOpen));
   };
@@ -1905,6 +2010,9 @@ const renderActions = (order) => {
     });
     panel.appendChild(button);
   };
+
+  // Temporarily disable "Change batch" for processing orders in the main orders UI.
+  const canChangeBatch = false;
 
   if (order.status === "new") {
     addMenuButton("Change assignee", "ghost-button", () => {
@@ -1981,6 +2089,13 @@ const renderActions = (order) => {
     addMenuButton("Provide invoice", "primary-button", () => {
       performAction(order, "invoice", API_ENDPOINTS.provideInvoice, "invoice");
     });
+
+  }
+
+  if (canChangeBatch) {
+    addMenuButton("Change batch", "ghost-button", () => {
+      handleChangeBatch(order);
+    });
   }
 
   addMenuButton("Show details", "ghost-button", () => {
@@ -1988,13 +2103,13 @@ const renderActions = (order) => {
   });
 
   trigger.addEventListener("click", toggleMenu);
-  document.addEventListener("click", closeMenu);
   menu.appendChild(trigger);
   menu.appendChild(panel);
   return menu;
 };
 
 const renderTable = (state) => {
+  closeActiveActionMenu();
   ordersBody.innerHTML = "";
   syncBatchFilterOptions(state.orders);
   syncStatusFilterVisibility(state.activeStatus);
@@ -2023,6 +2138,7 @@ const renderTable = (state) => {
     return;
   }
 
+  const fragment = document.createDocumentFragment();
   filtered.forEach((order) => {
     const row = document.createElement("tr");
 
@@ -2076,9 +2192,20 @@ const renderTable = (state) => {
     actionCell.appendChild(renderActions(order));
     row.appendChild(actionCell);
 
-    ordersBody.appendChild(row);
+    fragment.appendChild(row);
   });
+  ordersBody.appendChild(fragment);
   syncSelectionControls(state, filtered);
+};
+
+const scheduleRenderTable = (state = getState()) => {
+  if (pendingTableRenderFrame) {
+    window.cancelAnimationFrame(pendingTableRenderFrame);
+  }
+  pendingTableRenderFrame = window.requestAnimationFrame(() => {
+    pendingTableRenderFrame = null;
+    renderTable(state);
+  });
 };
 
 const getOrdersForActiveStatusExport = (state) => {
@@ -2148,30 +2275,34 @@ export const initUI = ({ onRefresh, onStatusChange }) => {
   refreshBtn.insertAdjacentElement("beforebegin", bulkSendForApprovalButton);
   refreshBtn.insertAdjacentElement("beforebegin", bulkPdfButton);
 
+  const debouncedFilterRender = debounce(() => {
+    scheduleRenderTable(getState());
+  });
+
   nameFilterInput.addEventListener("input", (event) => {
     const activeStatus = getState().activeStatus;
     nameFiltersByStatus.set(activeStatus, event.target.value || "");
-    renderTable(getState());
+    debouncedFilterRender();
   });
 
   statusFilterSelect.addEventListener("change", (event) => {
     activeStatusFilter = String(event.target.value || "all");
-    renderTable(getState());
+    scheduleRenderTable(getState());
   });
 
   orderTypeFilterSelect.addEventListener("change", (event) => {
     activeOrderTypeFilter = String(event.target.value || "all");
-    renderTable(getState());
+    scheduleRenderTable(getState());
   });
 
   assigneeFilterSelect.addEventListener("change", (event) => {
     activeAssigneeFilter = String(event.target.value || "all");
-    renderTable(getState());
+    scheduleRenderTable(getState());
   });
 
   batchFilterInput.addEventListener("input", (event) => {
     activeBatchFilter = String(event.target.value || "").trim();
-    renderTable(getState());
+    debouncedFilterRender();
   });
 
   if (selectAllOrdersInput) {
@@ -2183,7 +2314,7 @@ export const initUI = ({ onRefresh, onStatusChange }) => {
       } else {
         currentVisibleOrders.forEach((order) => selected.delete(order.order_number));
       }
-      renderTable(getState());
+      scheduleRenderTable(getState());
     });
   }
 
@@ -2286,6 +2417,7 @@ export const initUI = ({ onRefresh, onStatusChange }) => {
 
   subscribe((state) => {
     renderTabs(state.activeStatus, onStatusChange);
-    renderTable(state);
+    batchFilterOptionsSource = null;
+    scheduleRenderTable(state);
   });
 };

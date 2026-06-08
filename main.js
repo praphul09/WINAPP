@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, shell, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
-const { spawnSync } = require("child_process");
+const { spawn, spawnSync } = require("child_process");
 const console = require("console");
 
 let mainWindow = null;
@@ -976,6 +976,91 @@ const runBookGenerator = ({ batchId, batchName }) => {
   return { ok: false, message: "Python runtime not found. Install Python or ensure `python`/`py -3` is available." };
 };
 
+const runBookGeneratorAsync = ({ batchId, batchName }) =>
+  new Promise((resolve) => {
+    if (!fs.existsSync(BOOK_GENERATOR_SCRIPT_PATH)) {
+      resolve({ ok: false, message: "Book generator script not found." });
+      return;
+    }
+
+    const commands = [
+      { command: "py", args: ["-3"] },
+      { command: "python", args: [] },
+    ];
+
+    const tryCommandAtIndex = (index) => {
+      if (index >= commands.length) {
+        resolve({
+          ok: false,
+          message: "Python runtime not found. Install Python or ensure `python`/`py -3` is available.",
+        });
+        return;
+      }
+
+      const candidate = commands[index];
+      const child = spawn(
+        candidate.command,
+        [
+          ...candidate.args,
+          BOOK_GENERATOR_SCRIPT_PATH,
+          "--batch-id",
+          String(batchId),
+          "--batch-name",
+          String(batchName || ""),
+          "--registry-path",
+          path.join(BATCH_ROOT_DIR, "batch-registry.db"),
+        ],
+        {
+          windowsHide: true,
+          stdio: ["ignore", "pipe", "pipe"],
+        }
+      );
+
+      let stdout = "";
+      let stderr = "";
+      let settled = false;
+
+      child.stdout?.on("data", (chunk) => {
+        stdout += String(chunk || "");
+      });
+
+      child.stderr?.on("data", (chunk) => {
+        stderr += String(chunk || "");
+      });
+
+      child.on("error", () => {
+        if (settled) return;
+        settled = true;
+        tryCommandAtIndex(index + 1);
+      });
+
+      child.on("close", (code) => {
+        if (settled) return;
+        settled = true;
+
+        if (code !== 0) {
+          resolve({
+            ok: false,
+            message:
+              String(stderr || "").trim() ||
+              String(stdout || "").trim() ||
+              "Book generation failed.",
+          });
+          return;
+        }
+
+        resolve({
+          ok: true,
+          data: {
+            message: String(stdout || "").trim() || "Book generation completed.",
+          },
+        });
+      });
+    };
+
+    tryCommandAtIndex(0);
+  });
+
 const runExternalStudentRegenerate = (payload) => {
   if (!EXTERNAL_STUDENT_REGENERATE_SCRIPT) {
     return {
@@ -1805,7 +1890,7 @@ const constructBookDetails = ({ batchId }) => {
   }
 };
 
-const generateBooks = ({ batchId }) => {
+const generateBooks = async ({ batchId }) => {
   const normalizedBatchId = Number(batchId);
   if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
     return { ok: false, message: "Invalid batch id." };
@@ -1845,7 +1930,7 @@ const generateBooks = ({ batchId }) => {
       return { ok: false, message: "school_student_books has no entries. Construct book detail first." };
     }
 
-    const generationResult = runBookGenerator({
+    const generationResult = await runBookGeneratorAsync({
       batchId: batch.id,
       batchName: batch.batch_name,
     });
@@ -1878,7 +1963,7 @@ const generateBooks = ({ batchId }) => {
   }
 };
 
-const regenerateBooks = ({ batchId }) => {
+const regenerateBooks = async ({ batchId }) => {
   const normalizedBatchId = Number(batchId);
   if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
     return { ok: false, message: "Invalid batch id." };
@@ -1941,7 +2026,7 @@ const regenerateBooks = ({ batchId }) => {
     batchTransaction();
     registryTransaction();
 
-    const generationResult = runBookGenerator({
+    const generationResult = await runBookGeneratorAsync({
       batchId: batch.id,
       batchName: batch.batch_name,
     });
@@ -4331,9 +4416,9 @@ app.whenReady().then(() => {
       return { ok: false, message: error.message || "Unable to construct book details." };
     }
   });
-  ipcMain.handle("generate-books", (_event, payload) => {
+  ipcMain.handle("generate-books", async (_event, payload) => {
     try {
-      return generateBooks(payload || {});
+      return await generateBooks(payload || {});
     } catch (error) {
       return { ok: false, message: error.message || "Unable to generate books." };
     }
@@ -4345,9 +4430,9 @@ app.whenReady().then(() => {
       return { ok: false, message: error.message || "Unable to open batch processing folder." };
     }
   });
-  ipcMain.handle("regenerate-books", (_event, payload) => {
+  ipcMain.handle("regenerate-books", async (_event, payload) => {
     try {
-      return regenerateBooks(payload || {});
+      return await regenerateBooks(payload || {});
     } catch (error) {
       return { ok: false, message: error.message || "Unable to regenerate books." };
     }

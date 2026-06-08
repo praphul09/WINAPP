@@ -52,6 +52,30 @@ let moveOrderCancelButton = null;
 let moveOrderResolve = null;
 let moveOrderCandidates = [];
 let activeBatchNameFilter = "";
+let activeActionMenuCloser = null;
+let normalizedBatchDataSource = null;
+let normalizedBatchData = [];
+let batchNameFilterOptionsSource = null;
+let pendingBatchRenderFrame = null;
+
+const debounce = (callback, delay = 120) => {
+  let timeoutId = null;
+  return (...args) => {
+    window.clearTimeout(timeoutId);
+    timeoutId = window.setTimeout(() => callback(...args), delay);
+  };
+};
+
+const closeActiveActionMenu = () => {
+  if (typeof activeActionMenuCloser === "function") {
+    activeActionMenuCloser();
+  }
+  activeActionMenuCloser = null;
+};
+
+document.addEventListener("click", () => {
+  closeActiveActionMenu();
+});
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -100,21 +124,18 @@ const createActionMenu = (label, items) => {
   const closeMenu = () => {
     panel.classList.remove("open");
     trigger.setAttribute("aria-expanded", "false");
+    if (activeActionMenuCloser === closeMenu) {
+      activeActionMenuCloser = null;
+    }
   };
 
   trigger.addEventListener("click", (event) => {
     event.stopPropagation();
     const nextOpen = !panel.classList.contains("open");
-    document.querySelectorAll(".menu-panel.open").forEach((element) => {
-      if (element !== panel) {
-        element.classList.remove("open");
-      }
-    });
-    document.querySelectorAll(".menu-trigger[aria-expanded='true']").forEach((element) => {
-      if (element !== trigger) {
-        element.setAttribute("aria-expanded", "false");
-      }
-    });
+    if (nextOpen) {
+      closeActiveActionMenu();
+      activeActionMenuCloser = closeMenu;
+    }
     panel.classList.toggle("open", nextOpen);
     trigger.setAttribute("aria-expanded", String(nextOpen));
   });
@@ -132,7 +153,6 @@ const createActionMenu = (label, items) => {
     panel.appendChild(button);
   });
 
-  document.addEventListener("click", closeMenu);
   menu.appendChild(trigger);
   menu.appendChild(panel);
   return menu;
@@ -1539,6 +1559,7 @@ const handleMarkBatchComplete = async (batch) => {
 };
 
 const renderTable = (rows, emptyMessage) => {
+  closeActiveActionMenu();
   tableBody.innerHTML = "";
   if (!rows.length) {
     const row = document.createElement("tr");
@@ -1551,6 +1572,7 @@ const renderTable = (rows, emptyMessage) => {
     return;
   }
 
+  const fragment = document.createDocumentFragment();
   rows.forEach((batch) => {
     const row = document.createElement("tr");
 
@@ -1757,7 +1779,7 @@ const renderTable = (rows, emptyMessage) => {
     actionCell.appendChild(createActionMenu(`Open actions for batch ${batch.batchName}`, menuItems));
     row.appendChild(actionCell);
 
-    tableBody.appendChild(row);
+    fragment.appendChild(row);
 
     if (expandedBatchId === batch.id) {
       const detailRow = document.createElement("tr");
@@ -1765,9 +1787,10 @@ const renderTable = (rows, emptyMessage) => {
       detailCell.colSpan = 6;
       detailCell.appendChild(buildBatchOrdersRow(batch, batchOrdersCache.get(batch.id) || []));
       detailRow.appendChild(detailCell);
-      tableBody.appendChild(detailRow);
+      fragment.appendChild(detailRow);
     }
   });
+  tableBody.appendChild(fragment);
 };
 
 const renderTabs = (activeKey, counts) => {
@@ -1793,6 +1816,7 @@ let currentData = getInitialData();
 
 const syncBatchNameFilterOptions = (batches) => {
   if (!batchNameFilterOptions) return;
+  if (batchNameFilterOptionsSource === batches) return;
 
   const uniqueNames = Array.from(
     new Set(
@@ -1808,11 +1832,18 @@ const syncBatchNameFilterOptions = (batches) => {
     option.value = name;
     batchNameFilterOptions.appendChild(option);
   });
+  batchNameFilterOptionsSource = batches;
 };
 
 const render = (data) => {
   currentData = data;
-  const all = data.map((batch) => normalizeBatch(batch));
+  if (normalizedBatchDataSource !== data) {
+    normalizedBatchData = data.map((batch) => normalizeBatch(batch));
+    normalizedBatchDataSource = data;
+    batchNameFilterOptionsSource = null;
+  }
+
+  const all = normalizedBatchData;
   syncBatchNameFilterOptions(all);
   if (batchNameFilterInput) {
     batchNameFilterInput.value = activeBatchNameFilter;
@@ -1851,6 +1882,16 @@ const render = (data) => {
   refreshLabel.textContent = `Last refresh: ${new Date().toLocaleTimeString()}`;
 };
 
+const scheduleRender = (data = currentData) => {
+  if (pendingBatchRenderFrame) {
+    window.cancelAnimationFrame(pendingBatchRenderFrame);
+  }
+  pendingBatchRenderFrame = window.requestAnimationFrame(() => {
+    pendingBatchRenderFrame = null;
+    render(data);
+  });
+};
+
 const refreshAllBatches = async () => {
   if (!window.appBridge?.listBatches) {
     setStatus("Batch APIs are not available in this build.", "error");
@@ -1871,7 +1912,7 @@ const refreshAllBatches = async () => {
       await reloadExpandedBatchOrders(previousExpandedBatchId);
     } else {
       expandedBatchId = null;
-      render(data);
+      scheduleRender(data);
     }
     setStatus("All batches refreshed.", "success");
     return;
@@ -1914,9 +1955,12 @@ if (createForm && batchNameInput && window.appBridge?.createBatch) {
 }
 
 if (batchNameFilterInput) {
+  const debouncedBatchFilterRender = debounce(() => {
+    scheduleRender(currentData);
+  });
   batchNameFilterInput.addEventListener("input", (event) => {
     activeBatchNameFilter = String(event.target.value || "").trim();
-    render(currentData);
+    debouncedBatchFilterRender();
   });
 }
 
