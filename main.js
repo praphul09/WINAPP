@@ -3629,6 +3629,16 @@ const addOrderToBatch = ({
     batchDb = new Database(batch.db_path);
     ensureBatchDbSchema(batchDb);
 
+    const existingBatchOrderRow = batchDb
+      .prepare(
+        `
+          SELECT order_number
+          FROM orders
+          WHERE order_number = ?
+        `
+      )
+      .get(normalizedOrderNumber);
+
     const transaction = registryDb.transaction(() => {
       registryDb
         .prepare(`
@@ -3644,27 +3654,60 @@ const addOrderToBatch = ({
           addedAt
         );
 
-      batchDb
-        .prepare(`
-          INSERT INTO orders (
-            order_number, school_id, school_name, personalized, product_id, product_type, order_date, added_at
+      if (existingBatchOrderRow) {
+        batchDb
+          .prepare(
+            `
+              UPDATE orders
+              SET
+                school_id = ?,
+                school_name = ?,
+                personalized = ?,
+                product_id = ?,
+                product_type = ?,
+                order_date = ?,
+                added_at = ?
+              WHERE order_number = ?
+            `
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `)
-        .run(
-          normalizedOrderNumber,
-          schoolId ? String(schoolId) : null,
-          schoolName ? String(schoolName) : null,
-          personalized === undefined || personalized === null ? null : String(personalized),
-          productId ? String(productId) : null,
-          productType ? String(productType) : null,
-          orderDate ? String(orderDate) : null,
-          addedAt
-        );
+          .run(
+            schoolId ? String(schoolId) : null,
+            schoolName ? String(schoolName) : null,
+            personalized === undefined || personalized === null ? null : String(personalized),
+            productId ? String(productId) : null,
+            productType ? String(productType) : null,
+            orderDate ? String(orderDate) : null,
+            addedAt,
+            normalizedOrderNumber
+          );
+      } else {
+        batchDb
+          .prepare(`
+            INSERT INTO orders (
+              order_number, school_id, school_name, personalized, product_id, product_type, order_date, added_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `)
+          .run(
+            normalizedOrderNumber,
+            schoolId ? String(schoolId) : null,
+            schoolName ? String(schoolName) : null,
+            personalized === undefined || personalized === null ? null : String(personalized),
+            productId ? String(productId) : null,
+            productType ? String(productType) : null,
+            orderDate ? String(orderDate) : null,
+            addedAt
+          );
+      }
 
       batchDb
         .prepare("INSERT INTO batch_log (message, created_at) VALUES (?, ?)")
-        .run(`Order ${normalizedOrderNumber} added to batch.`, addedAt);
+        .run(
+          existingBatchOrderRow
+            ? `Order ${normalizedOrderNumber} restored in batch registry using existing batch data row.`
+            : `Order ${normalizedOrderNumber} added to batch.`,
+          addedAt
+        );
     });
 
     transaction();
