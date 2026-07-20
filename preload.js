@@ -6,12 +6,27 @@ contextBridge.exposeInMainWorld("appInfo", {
 
 contextBridge.exposeInMainWorld("appBridge", {
   openBatchesWindow: () => ipcRenderer.invoke("open-batches-window"),
+  openMissingBooksWindow: () => ipcRenderer.invoke("open-missing-books-window"),
+  createMissingBatch: (batchName) => ipcRenderer.invoke("create-missing-batch", batchName),
+  listMissingBatches: () => ipcRenderer.invoke("list-missing-batches"),
+  listMissingBatchSchools: (payload) => ipcRenderer.invoke("list-missing-batch-schools", payload),
+  addSchoolsToMissingBatch: (payload) => ipcRenderer.invoke("add-schools-to-missing-batch", payload),
+  searchMissingBatchSourceRows: (payload) => ipcRenderer.invoke("search-missing-batch-source-rows", payload),
+  addBookDetailsRowsToMissingBatch: (payload) => ipcRenderer.invoke("add-bookdetails-rows-to-missing-batch", payload),
+  addNonpBooksToMissingBatch: (payload) => ipcRenderer.invoke("add-nonp-books-to-missing-batch", payload),
+  previewNonpSubjectsForMissingBatch: (payload) => ipcRenderer.invoke("preview-nonp-subjects-for-missing-batch", payload),
+  addAllNonpSubjectsToMissingBatch: (payload) => ipcRenderer.invoke("add-all-nonp-subjects-to-missing-batch", payload),
+  findMissingBooksBySchoolId: (payload) => ipcRenderer.invoke("find-missing-books-by-school-id", payload),
+  exportMissingBooksCsv: (payload) => ipcRenderer.invoke("export-missing-books-csv", payload),
+  exportMissingBooksJson: (payload) => ipcRenderer.invoke("export-missing-books-json", payload),
   createBatch: (batchName) => ipcRenderer.invoke("create-batch", batchName),
   listBatches: () => ipcRenderer.invoke("list-batches"),
   listAvailableBatches: () => ipcRenderer.invoke("list-available-batches"),
   listBatchOrders: (batchId) => ipcRenderer.invoke("list-batch-orders", batchId),
   listBatchPreparedProductDetails: (payload) =>
     ipcRenderer.invoke("list-batch-prepared-product-details", payload),
+  listSourceBatchProductDetailsByContext: (payload) =>
+    ipcRenderer.invoke("list-source-batch-product-details-by-context", payload),
   listBatchDetailedInfo: (payload) => ipcRenderer.invoke("list-batch-detailed-info", payload),
   listOrderBatchLinks: () => ipcRenderer.invoke("list-order-batch-links"),
   setOrderAssignee: (payload) => ipcRenderer.invoke("set-order-assignee", payload),

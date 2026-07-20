@@ -1,4 +1,4 @@
-import { callApi } from "./api.js";
+import { callApi, fetchOrders } from "./api.js";
 import { API_ENDPOINTS } from "./api-config.js";
 
 const tabsContainer = document.getElementById("batch-tabs");
@@ -7,6 +7,7 @@ const countLabel = document.getElementById("batch-count");
 const tableBody = document.getElementById("batches-body");
 const refreshLabel = document.getElementById("batches-refresh");
 const refreshButton = document.getElementById("refresh-batches");
+const batchProductTypeFilterSelect = document.getElementById("batch-product-type-filter");
 const batchNameFilterInput = document.getElementById("batch-name-filter");
 const batchNameFilterOptions = document.getElementById("batch-name-filter-options");
 const createForm = document.getElementById("create-batch-form");
@@ -51,12 +52,14 @@ let moveOrderConfirmButton = null;
 let moveOrderCancelButton = null;
 let moveOrderResolve = null;
 let moveOrderCandidates = [];
+let activeBatchProductTypeFilter = "all";
 let activeBatchNameFilter = "";
 let activeActionMenuCloser = null;
 let normalizedBatchDataSource = null;
 let normalizedBatchData = [];
 let batchNameFilterOptionsSource = null;
 let pendingBatchRenderFrame = null;
+let globalOrderRepeatSource = [];
 
 const debounce = (callback, delay = 120) => {
   let timeoutId = null;
@@ -103,9 +106,128 @@ const normalizeBatchOrder = (order) => ({
   orderNumber: order.order_number ?? "-",
   schoolId: order.school_id ?? null,
   schoolName: order.school_name ?? "-",
+  productType: order.product_type ?? "",
+  status: order.status ?? "",
   orderDate: formatDate(order.order_date),
   addedAt: formatDate(order.added_at),
 });
+
+const normalizeGlobalOrderStatus = (status) => {
+  const value = String(status || "").trim().toLowerCase();
+  if (value === "pending approval" || value === "approval_pending") {
+    return "pending approval";
+  }
+  return value || "-";
+};
+
+const normalizeGlobalRepeatOrder = (order) => ({
+  orderNumber: order?.id ?? order?.order_number ?? "-",
+  schoolId: order?.schoolId ?? order?.school_id ?? order?.school?.id ?? "",
+  schoolName: order?.schoolName ?? order?.school_name ?? order?.school?.name ?? "",
+  productType: order?.productType ?? order?.product_type ?? "",
+  status: normalizeGlobalOrderStatus(order?.status),
+  personalized: order?.personalized ?? order?.is_personalized ?? order?.product?.personalized ?? "",
+  product: order?.product ?? null,
+  product_name: order?.product_name ?? order?.name ?? "",
+  name: order?.name ?? "",
+});
+
+const getNormalizedBatchOrderType = (order) => {
+  const rawParts = [
+    order?.productType,
+    order?.product_type,
+    order?.product?.type,
+    order?.product?.name,
+    order?.product?.title,
+    order?.product_name,
+    order?.name,
+  ]
+    .filter(Boolean)
+    .map((value) => String(value).trim().toLowerCase());
+  const normalized = rawParts.join(" ").trim().replace(/[\s-]+/g, "_");
+  const personalizedValue = String(
+    order?.personalized ?? order?.is_personalized ?? order?.product?.personalized ?? ""
+  )
+    .trim()
+    .toLowerCase();
+
+  if (
+    personalizedValue === "0" ||
+    personalizedValue === "n" ||
+    personalizedValue === "no" ||
+    personalizedValue === "false" ||
+    normalized.includes("nonp") ||
+    normalized.includes("non_personalized") ||
+    normalized.includes("nonpersonalized") ||
+    normalized.includes("non_persolized") ||
+    normalized.includes("nonpersolized") ||
+    normalized.includes("shared_book")
+  ) {
+    return "non_personalized_order";
+  }
+  if (normalized.includes("curriculum")) {
+    return "curriculum_books";
+  }
+  if (
+    normalized.includes("id_card") ||
+    normalized.includes("idcard") ||
+    normalized.includes("identity_card") ||
+    normalized.includes("birthday_card") ||
+    normalized.includes("i_card") ||
+    normalized.includes("icard")
+  ) {
+    return "id_card";
+  }
+  if (
+    normalized.includes("report_card") ||
+    normalized.includes("reportcard") ||
+    (normalized.includes("report") && normalized.includes("card"))
+  ) {
+    return "report_card";
+  }
+  if (normalized.includes("certificate") || normalized.includes("cert")) {
+    return "certificate";
+  }
+  if (normalized) {
+    return "other";
+  }
+  return "";
+};
+
+const getBatchSchoolOrderCountsForActiveProductType = () => {
+  const relevantOrders =
+    activeBatchProductTypeFilter === "all"
+      ? Array.isArray(globalOrderRepeatSource)
+        ? globalOrderRepeatSource
+        : []
+      : (Array.isArray(globalOrderRepeatSource) ? globalOrderRepeatSource : []).filter(
+          (order) => getNormalizedBatchOrderType(order) === activeBatchProductTypeFilter
+        );
+
+  const counts = new Map();
+  relevantOrders.forEach((order) => {
+    const schoolId = String(order?.schoolId || "").trim();
+    const schoolName = String(order?.schoolName || "").trim().toLowerCase();
+    const key = schoolId || schoolName;
+    if (!counts.has(key)) {
+      counts.set(key, 0);
+    }
+    counts.set(key, counts.get(key) + 1);
+  });
+  return counts;
+};
+
+const getBatchOrderStatusByNumber = () => {
+  const statuses = new Map();
+  (Array.isArray(globalOrderRepeatSource) ? globalOrderRepeatSource : []).forEach((order) => {
+    const orderNumber = String(order?.orderNumber || order?.order_number || "").trim();
+    if (!orderNumber || statuses.has(orderNumber)) {
+      return;
+    }
+    statuses.set(orderNumber, normalizeGlobalOrderStatus(order?.status));
+  });
+  return statuses;
+};
 
 const createActionMenu = (label, items) => {
   const menu = document.createElement("div");
@@ -645,6 +767,9 @@ const buildBatchOrdersRow = (batch, orders) => {
   const wrapper = document.createElement("div");
   wrapper.className = "modal-table";
 
+  const schoolOrderCounts = getBatchSchoolOrderCountsForActiveProductType();
+  const orderStatuses = getBatchOrderStatusByNumber();
+
   if (!orders.length) {
     const empty = document.createElement("p");
     empty.className = "empty-state";
@@ -659,6 +784,8 @@ const buildBatchOrdersRow = (batch, orders) => {
       <tr>
         <th>Order #</th>
         <th>School</th>
+        <th>Order Repeat</th>
+        <th>Status</th>
         <th>Order date</th>
         <th>Added</th>
         <th>Action</th>
@@ -669,8 +796,13 @@ const buildBatchOrdersRow = (batch, orders) => {
 
   orders.forEach((order) => {
     const row = document.createElement("tr");
+    const repeatKey =
+      String(order?.schoolId || "").trim() || String(order?.schoolName || "").trim().toLowerCase();
+    const orderNumberKey = String(order?.orderNumber || "").trim();
     row.innerHTML = `<td>${order.orderNumber}</td>
       <td>${order.schoolName}</td>
+      <td>${schoolOrderCounts.get(repeatKey) || 0}</td>
+      <td>${orderStatuses.get(orderNumberKey) || order.status || "-"}</td>
       <td>${order.orderDate}</td>
       <td>${order.addedAt}</td>`;
 
@@ -1784,7 +1916,7 @@ const renderTable = (rows, emptyMessage) => {
     if (expandedBatchId === batch.id) {
       const detailRow = document.createElement("tr");
       const detailCell = document.createElement("td");
-      detailCell.colSpan = 6;
+      detailCell.colSpan = 7;
       detailCell.appendChild(buildBatchOrdersRow(batch, batchOrdersCache.get(batch.id) || []));
       detailRow.appendChild(detailCell);
       fragment.appendChild(detailRow);
@@ -1848,6 +1980,9 @@ const render = (data) => {
   if (batchNameFilterInput) {
     batchNameFilterInput.value = activeBatchNameFilter;
   }
+  if (batchProductTypeFilterSelect) {
+    batchProductTypeFilterSelect.value = activeBatchProductTypeFilter;
+  }
 
   const statusFiltered = activeTab === "all" ? all : all.filter((batch) => batch.status === activeTab);
   const normalizedBatchNameFilter = String(activeBatchNameFilter || "").trim().toLowerCase();
@@ -1900,7 +2035,19 @@ const refreshAllBatches = async () => {
   const previousExpandedBatchId = expandedBatchId;
   batchOrdersCache.clear();
   setStatus("Refreshing all batches...", "neutral");
-  const result = await window.appBridge.listBatches();
+  const [result, ordersResult] = await Promise.all([
+    window.appBridge.listBatches(),
+    fetchOrders(null),
+  ]);
+
+  if (ordersResult?.ok) {
+    globalOrderRepeatSource = (Array.isArray(ordersResult.data) ? ordersResult.data : []).map((order) =>
+      normalizeGlobalRepeatOrder(order)
+    );
+  } else {
+    globalOrderRepeatSource = [];
+  }
+
   if (result?.ok) {
     const data = Array.isArray(result.data) ? result.data : [];
     const hasExpandedBatch =
@@ -1961,6 +2108,13 @@ if (batchNameFilterInput) {
   batchNameFilterInput.addEventListener("input", (event) => {
     activeBatchNameFilter = String(event.target.value || "").trim();
     debouncedBatchFilterRender();
+  });
+}
+
+if (batchProductTypeFilterSelect) {
+  batchProductTypeFilterSelect.addEventListener("change", (event) => {
+    activeBatchProductTypeFilter = String(event.target.value || "all");
+    scheduleRender(currentData);
   });
 }
 

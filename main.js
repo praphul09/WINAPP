@@ -7,6 +7,7 @@ const console = require("console");
 
 let mainWindow = null;
 let batchesWindow = null;
+let missingBooksWindow = null;
 let batchRegistryDb = null;
 let assigneeDb = null;
 
@@ -359,6 +360,31 @@ const ensureBatchDbSchema = (db) => {
     CREATE INDEX IF NOT EXISTS idx_school_student_books_school ON school_student_books(school_id, school_name);
     CREATE INDEX IF NOT EXISTS idx_school_student_books_student ON school_student_books(student_id, student_name);
     CREATE INDEX IF NOT EXISTS idx_school_student_books_book ON school_student_books(book_id, innercode);
+    CREATE TABLE IF NOT EXISTS missing_batch_schools (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id TEXT NOT NULL UNIQUE,
+      school_name TEXT,
+      added_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_missing_batch_schools_school ON missing_batch_schools(school_id, school_name);
+    CREATE TABLE IF NOT EXISTS missing_batch_book_detail_map (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_source_id TEXT,
+      order_details_id TEXT,
+      student_id TEXT,
+      school_id TEXT NOT NULL,
+      class_id TEXT NOT NULL,
+      product_id TEXT NOT NULL,
+      product_detail_source_id TEXT NOT NULL,
+      subject_name TEXT,
+      source_batch_id INTEGER,
+      added_at TEXT NOT NULL,
+      UNIQUE(student_source_id, order_details_id, student_id, school_id, class_id, product_id, product_detail_source_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_missing_batch_book_detail_map_student
+      ON missing_batch_book_detail_map(student_source_id, order_details_id, student_id);
+    CREATE INDEX IF NOT EXISTS idx_missing_batch_book_detail_map_detail
+      ON missing_batch_book_detail_map(product_detail_source_id, school_id, class_id, product_id);
   `);
 };
 
@@ -849,6 +875,9 @@ const getPrintLaterBatchName = (date = new Date()) =>
     date.getDate()
   ).padStart(2, "0")}`;
 
+const MISSING_BATCH_PREFIX = "Missing_";
+const isMissingBatchName = (value) => String(value || "").trim().startsWith(MISSING_BATCH_PREFIX);
+
 const createBuildingBatchRecord = (registryDb, batchName) => {
   const rootDir = BATCH_ROOT_DIR;
   const safeBase = String(batchName || "")
@@ -1139,6 +1168,36 @@ const listBatchVerifyStudents = ({ batchId }) => {
   try {
     batchDb = new Database(batch.db_path);
     ensureBatchDbSchema(batchDb);
+
+    if (isMissingBatchName(batch.batch_name)) {
+      if (!tableExists(batchDb, "BookDetails")) {
+        return { ok: false, message: "BookDetails not found for this Missing batch." };
+      }
+
+      const rows = batchDb
+        .prepare(
+          `
+            SELECT school_id, school_name, student_id, student_name, class_id, class_name, name
+            FROM BookDetails
+            WHERE COALESCE(TRIM(school_id), '') != ''
+              AND COALESCE(TRIM(student_id), '') != ''
+              AND COALESCE(TRIM(class_id), '') != ''
+              AND COALESCE(TRIM(name), '') != ''
+            ORDER BY school_name ASC, student_name ASC, class_name ASC, name ASC, id ASC
+          `
+        )
+        .all();
+
+      return {
+        ok: true,
+        data: {
+          batch_id: batch.id,
+          batch_name: batch.batch_name,
+          status: batch.status,
+          students: rows,
+        },
+      };
+    }
 
     if (!tableExists(batchDb, "prepared_students") || !tableExists(batchDb, "prepared_product_details")) {
       return { ok: false, message: "Prepared data not found. Prepare/construct batch first." };
@@ -1557,9 +1616,49 @@ const constructBookDetails = ({ batchId }) => {
       productDetailMap.get(key).push(detail);
     });
 
+    const isMissingBatch = isMissingBatchName(batch.batch_name);
+    const missingBatchSelectionMap = new Map();
+    if (isMissingBatch && tableExists(batchDb, "missing_batch_book_detail_map")) {
+      const selectedDetailRows = batchDb
+        .prepare(
+          `
+            SELECT student_source_id, order_details_id, student_id, school_id, class_id, product_id, product_detail_source_id
+            FROM missing_batch_book_detail_map
+            ORDER BY id ASC
+          `
+        )
+        .all();
+
+      selectedDetailRows.forEach((row) => {
+        const schoolId = normalizeIdValue(row?.school_id);
+        const classId = normalizeIdValue(row?.class_id);
+        const productId = normalizeIdValue(row?.product_id);
+        const detailSourceId = normalizeIdValue(row?.product_detail_source_id);
+        if (!(schoolId && classId && productId && detailSourceId)) {
+          return;
+        }
+
+        const key = [
+          normalizeIdValue(row?.student_source_id),
+          normalizeIdValue(row?.order_details_id),
+          normalizeIdValue(row?.student_id),
+          schoolId,
+          classId,
+          productId,
+        ].join("::");
+
+        if (!missingBatchSelectionMap.has(key)) {
+          missingBatchSelectionMap.set(key, new Set());
+        }
+        missingBatchSelectionMap.get(key).add(detailSourceId);
+      });
+    }
+
     const rows = [];
     for (const student of students) {
+      const studentSourceId = normalizeIdValue(pickFirstValue(student?.source_id));
       const orderDetailsId = normalizeIdValue(pickFirstValue(student?.order_details_id));
+      const studentId = normalizeIdValue(pickFirstValue(student?.student_id));
       const classId = normalizeIdValue(pickFirstValue(student?.class_id));
       const schoolId = normalizeIdValue(pickFirstValue(student?.school_id));
       if (!orderDetailsId) {
@@ -1598,7 +1697,25 @@ const constructBookDetails = ({ batchId }) => {
       }
       
 
-      const mappedDetails = productDetailMap.get(`${productId}::${classId}::${schoolId}`) || [];
+      const productDetailKey = `${productId}::${classId}::${schoolId}`;
+      let mappedDetails = productDetailMap.get(productDetailKey) || [];
+      const selectionKey = [studentSourceId, orderDetailsId, studentId, schoolId, classId, productId].join("::");
+      const selectedDetailSourceIds = missingBatchSelectionMap.get(selectionKey);
+      if (isMissingBatch) {
+        if (!selectedDetailSourceIds?.size) {
+          return {
+            ok: false,
+            message: `Missing batch selection not found for student ${student.student_name || student.student_id || student.id}. Re-add the selected missing-book row(s) and construct again.`,
+          };
+        }
+        mappedDetails = mappedDetails.filter((detail) =>
+          selectedDetailSourceIds.has(normalizeIdValue(pickFirstValue(detail?.source_id)))
+        );
+      } else if (selectedDetailSourceIds?.size) {
+        mappedDetails = mappedDetails.filter((detail) =>
+          selectedDetailSourceIds.has(normalizeIdValue(pickFirstValue(detail?.source_id)))
+        );
+      }
       if (!mappedDetails.length) {
         return {
           ok: false,
@@ -1926,7 +2043,11 @@ const generateBooks = async ({ batchId }) => {
     }
 
     const schoolStudentBooksCount = getTableCount(batchDb, "school_student_books");
-    if (schoolStudentBooksCount <= 0) {
+    const nonpBookDetailsCount = Number(
+      batchDb.prepare("SELECT COUNT(*) AS c FROM BookDetails WHERE COALESCE(nonp_order, 0) = 1").get()?.c || 0
+    );
+    const allowMissingBatchNonpOnly = isMissingBatchName(batch.batch_name) && nonpBookDetailsCount > 0;
+    if (schoolStudentBooksCount <= 0 && !allowMissingBatchNonpOnly) {
       return { ok: false, message: "school_student_books has no entries. Construct book detail first." };
     }
 
@@ -1952,6 +2073,7 @@ const generateBooks = async ({ batchId }) => {
         message: generationResult.data?.message || "Book generation completed.",
         book_details_count: bookDetailsCount,
         school_student_books_count: schoolStudentBooksCount,
+        nonp_book_details_count: nonpBookDetailsCount,
       },
     };
   } catch (error) {
@@ -1999,7 +2121,11 @@ const regenerateBooks = async ({ batchId }) => {
     }
 
     const schoolStudentBooksCount = getTableCount(batchDb, "school_student_books");
-    if (schoolStudentBooksCount <= 0) {
+    const nonpBookDetailsCount = Number(
+      batchDb.prepare("SELECT COUNT(*) AS c FROM BookDetails WHERE COALESCE(nonp_order, 0) = 1").get()?.c || 0
+    );
+    const allowMissingBatchNonpOnly = isMissingBatchName(batch.batch_name) && nonpBookDetailsCount > 0;
+    if (schoolStudentBooksCount <= 0 && !allowMissingBatchNonpOnly) {
       return { ok: false, message: "school_student_books has no entries. Construct book detail first." };
     }
 
@@ -2048,6 +2174,7 @@ const regenerateBooks = async ({ batchId }) => {
         message: generationResult.data?.message || "Book regeneration completed.",
         book_details_count: bookDetailsCount,
         school_student_books_count: schoolStudentBooksCount,
+        nonp_book_details_count: nonpBookDetailsCount,
       },
     };
   } catch (error) {
@@ -2064,6 +2191,7 @@ const listBatches = () => {
   const query = db.prepare(`
     SELECT id, batch_name, created_at, status, active, db_path, inner_binder_generated, cover_binder_generated
     FROM batches
+    WHERE batch_name NOT LIKE 'Missing\\_%' ESCAPE '\\'
     ORDER BY active DESC, datetime(created_at) DESC, id DESC
   `);
   return query.all();
@@ -2076,9 +2204,732 @@ const listAvailableBatches = () => {
       SELECT id, batch_name, created_at, status, active, db_path, inner_binder_generated, cover_binder_generated
       FROM batches
       WHERE status = 'new'
+        AND batch_name NOT LIKE 'Missing\\_%' ESCAPE '\\'
       ORDER BY datetime(created_at) DESC, id DESC
     `)
     .all();
+};
+
+const listMissingBatches = () => {
+  const db = getBatchRegistryDb();
+  return db
+    .prepare(`
+      SELECT id, batch_name, created_at, status, active, db_path, inner_binder_generated, cover_binder_generated
+      FROM batches
+      WHERE batch_name LIKE 'Missing\\_%' ESCAPE '\\'
+      ORDER BY datetime(created_at) DESC, id DESC
+    `)
+    .all();
+};
+
+const getMissingBatchRecord = (batchId) => {
+  const normalizedBatchId = Number(batchId);
+  if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
+    throw new Error("Invalid target batch id.");
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const batch = registryDb
+    .prepare("SELECT id, batch_name, status, db_path FROM batches WHERE id = ?")
+    .get(normalizedBatchId);
+
+  if (!batch) {
+    throw new Error("Target batch not found.");
+  }
+  if (!isMissingBatchName(batch.batch_name)) {
+    throw new Error("Target batch is not a Missing batch.");
+  }
+
+  return batch;
+};
+
+const listMissingBatchSchools = ({ targetBatchId }) => {
+  let batchDb;
+  try {
+    const batch = getMissingBatchRecord(targetBatchId);
+    batchDb = new Database(batch.db_path);
+    ensureBatchDbSchema(batchDb);
+
+    const schools = batchDb
+      .prepare(`
+        SELECT school_id, school_name, added_at
+        FROM missing_batch_schools
+        ORDER BY COALESCE(NULLIF(TRIM(school_name), ''), TRIM(school_id)) ASC, TRIM(school_id) ASC
+      `)
+      .all();
+    const sourceMetaBySchool = resolveMissingBatchSchoolSourceMeta(schools.map((row) => row.school_id));
+
+    return {
+      ok: true,
+      data: {
+        batch_id: batch.id,
+        batch_name: batch.batch_name,
+        schools: schools.map((school) => {
+          const sourceBatches = sourceMetaBySchool.get(normalizeIdValue(school?.school_id)) || [];
+          return {
+            ...school,
+            source_batches: sourceBatches,
+            source_batch_ids: sourceBatches.map((item) => item.batch_id).filter((value) => Number.isInteger(value) && value > 0),
+          };
+        }),
+      },
+    };
+  } catch (error) {
+    return { ok: false, message: error.message || "Unable to load Missing batch schools." };
+  } finally {
+    if (batchDb) {
+      batchDb.close();
+    }
+  }
+};
+
+const resolveSchoolDirectory = (schoolIds) => {
+  const normalizedSchoolIds = Array.from(
+    new Set((Array.isArray(schoolIds) ? schoolIds : []).map((value) => normalizeIdValue(value)).filter(Boolean))
+  );
+  if (!normalizedSchoolIds.length) {
+    return new Map();
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const placeholders = normalizedSchoolIds.map(() => "?").join(", ");
+  const rows = registryDb
+    .prepare(`
+      SELECT school_id, MAX(NULLIF(TRIM(school_name), '')) AS school_name
+      FROM batch_orders
+      WHERE TRIM(COALESCE(school_id, '')) IN (${placeholders})
+      GROUP BY school_id
+    `)
+    .all(...normalizedSchoolIds);
+
+  return new Map(
+    rows.map((row) => [
+      normalizeIdValue(row?.school_id),
+      String(row?.school_name || row?.school_id || "").trim(),
+    ])
+  );
+};
+
+const addSchoolsToMissingBatch = ({ targetBatchId, schoolIds }) => {
+  let batchDb;
+  try {
+    const batch = getMissingBatchRecord(targetBatchId);
+    if (batch.status !== "new" && batch.status !== "building") {
+      return { ok: false, message: "Only Missing batches with status 'new' or 'building' can accept schools." };
+    }
+
+    const rawSchoolIds = Array.isArray(schoolIds)
+      ? schoolIds
+      : String(schoolIds || "")
+          .split(/[\s,]+/)
+          .filter(Boolean);
+    const normalizedSchoolIds = Array.from(
+      new Set(rawSchoolIds.map((value) => normalizeIdValue(value)).filter(Boolean))
+    );
+
+    if (!normalizedSchoolIds.length) {
+      return { ok: false, message: "Provide at least one school ID." };
+    }
+
+    const schoolDirectory = resolveSchoolDirectory(normalizedSchoolIds);
+    const addedAt = new Date().toISOString();
+
+    batchDb = new Database(batch.db_path);
+    ensureBatchDbSchema(batchDb);
+
+    const insertSchool = batchDb.prepare(`
+      INSERT OR IGNORE INTO missing_batch_schools (school_id, school_name, added_at)
+      VALUES (?, ?, ?)
+    `);
+    const getExistingSchool = batchDb.prepare(`
+      SELECT school_id, school_name, added_at
+      FROM missing_batch_schools
+      WHERE school_id = ?
+    `);
+
+    const transaction = batchDb.transaction((ids) => {
+      const added = [];
+      const skipped = [];
+
+      ids.forEach((schoolId) => {
+        const schoolName = schoolDirectory.get(schoolId) || schoolId;
+        const result = insertSchool.run(schoolId, schoolName, addedAt);
+        const row = getExistingSchool.get(schoolId);
+        if (result.changes > 0) {
+          added.push(row);
+        } else {
+          skipped.push(row);
+        }
+      });
+
+      return { added, skipped };
+    });
+
+    const outcome = transaction(normalizedSchoolIds);
+    const schools = batchDb
+      .prepare(`
+        SELECT school_id, school_name, added_at
+        FROM missing_batch_schools
+        ORDER BY COALESCE(NULLIF(TRIM(school_name), ''), TRIM(school_id)) ASC, TRIM(school_id) ASC
+      `)
+      .all();
+
+    return {
+      ok: true,
+      data: {
+        batch_id: batch.id,
+        batch_name: batch.batch_name,
+        added_count: outcome.added.length,
+        skipped_count: outcome.skipped.length,
+        added_schools: outcome.added,
+        skipped_schools: outcome.skipped,
+        schools,
+      },
+    };
+  } catch (error) {
+    return { ok: false, message: error.message || "Unable to add schools to Missing batch." };
+  } finally {
+    if (batchDb) {
+      batchDb.close();
+    }
+  }
+};
+
+const resolveMissingBatchSchoolSourceMeta = (schoolIds) => {
+  const normalizedSchoolIds = Array.from(
+    new Set((Array.isArray(schoolIds) ? schoolIds : []).map((value) => normalizeIdValue(value)).filter(Boolean))
+  );
+  if (!normalizedSchoolIds.length) {
+    return new Map();
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const placeholders = normalizedSchoolIds.map(() => "?").join(", ");
+  const rows = registryDb
+    .prepare(
+      `
+        SELECT DISTINCT
+          bo.school_id,
+          b.id AS batch_id,
+          b.batch_name,
+          b.created_at
+        FROM batch_orders bo
+        INNER JOIN batches b ON b.id = bo.batch_id
+        WHERE TRIM(COALESCE(bo.school_id, '')) IN (${placeholders})
+          AND b.batch_name NOT LIKE 'Missing\\_%' ESCAPE '\\'
+        ORDER BY datetime(b.created_at) DESC, b.id DESC
+      `
+    )
+    .all(...normalizedSchoolIds);
+
+  const metaBySchool = new Map();
+  rows.forEach((row) => {
+    const schoolId = normalizeIdValue(row?.school_id);
+    if (!schoolId) return;
+    if (!metaBySchool.has(schoolId)) {
+      metaBySchool.set(schoolId, []);
+    }
+    metaBySchool.get(schoolId).push({
+      batch_id: Number(row?.batch_id || 0),
+      batch_name: String(row?.batch_name || "").trim(),
+    });
+  });
+
+  return metaBySchool;
+};
+
+const createBookDetailsInsertStatement = (db) =>
+  db.prepare(`
+    INSERT INTO BookDetails (
+      source_id, order_details_id, student_id, school_id, school_name, class_id, class_name, student_name, dob,
+      current_address, photo, guardian_name, guardian_mobile, guardian_image, sec_guardian_name,
+      sec_guardian_mobile, sec_guardian_image, product_id, name, covercode, innercode, personlized,
+      real_time_print, spine_code, book_size, type, coverqr, innerqr, colour_1, colour_2, assigned_number, nonp_order,
+      book_id, cover_generated, inner_generated
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+const createSchoolStudentBookInsertStatement = (db) =>
+  db.prepare(`
+    INSERT INTO school_student_books (
+      school_id, school_name, student_id, student_name, book_id, name, innercode, outercode,
+      assigned_number, colour_1, colour_2, lamination_status, composing_status, sorting_status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+const shouldCreateSchoolStudentBookEntry = (innercode) => {
+  const normalizedInnercode = String(innercode || "").trim().toLowerCase();
+  return !(normalizedInnercode.endsWith("s") || normalizedInnercode.endsWith("b"));
+};
+
+const insertBookDetailRow = ({ db, row, insertBookDetail, insertSchoolStudentBook }) => {
+  insertBookDetail.run(
+    row.source_id,
+    row.order_details_id,
+    row.student_id,
+    row.school_id,
+    row.school_name,
+    row.class_id,
+    row.class_name,
+    row.student_name,
+    row.dob,
+    row.current_address,
+    row.photo,
+    row.guardian_name,
+    row.guardian_mobile,
+    row.guardian_image,
+    row.sec_guardian_name,
+    row.sec_guardian_mobile,
+    row.sec_guardian_image,
+    row.product_id,
+    row.name,
+    row.covercode,
+    row.innercode,
+    row.personlized,
+    row.real_time_print,
+    row.spine_code,
+    row.book_size,
+    row.type,
+    row.coverqr,
+    row.innerqr,
+    row.colour_1,
+    row.colour_2,
+    row.assigned_number,
+    row.nonp_order,
+    row.book_id,
+    0,
+    0
+  );
+
+  if (!shouldCreateSchoolStudentBookEntry(row.innercode)) {
+    return false;
+  }
+
+  insertSchoolStudentBook.run(
+    row.school_id,
+    row.school_name,
+    row.student_id,
+    row.student_name,
+    row.book_id,
+    row.name,
+    row.innercode,
+    row.covercode,
+    row.assigned_number,
+    row.colour_1,
+    row.colour_2,
+    0,
+    0,
+    0
+  );
+  return true;
+};
+
+const buildDirectBookDetailsRow = ({
+  sourceRow,
+  batchId,
+  bookId,
+  overrideName,
+  overrideCovercode,
+  overrideInnercode,
+  overridePersonlized,
+  overrideRealTimePrint,
+  overrideSpineCode,
+  overrideBookSize,
+  overrideType,
+  overrideColour1,
+  overrideColour2,
+}) => {
+  const row = sourceRow || {};
+  const name = pickFirstValue(overrideName, row?.name, "-");
+  const covercode = pickFirstValue(overrideCovercode, row?.covercode, "");
+  const innercode = pickFirstValue(overrideInnercode, row?.innercode, "");
+  const personlized = pickFirstValue(overridePersonlized, row?.personlized, "");
+  const realTimePrint = pickFirstValue(overrideRealTimePrint, row?.real_time_print, "");
+  const spineCode = pickFirstValue(overrideSpineCode, row?.spine_code, "");
+  const bookSize = pickFirstValue(overrideBookSize, row?.book_size, "");
+  const type = pickFirstValue(overrideType, row?.type, "");
+  const nonpOrder = Number(row?.nonp_order || 0);
+  const assignedNumber = row?.assigned_number ?? null;
+
+  return {
+    source_id: normalizeIdValue(row?.source_id),
+    order_details_id: normalizeIdValue(row?.order_details_id),
+    student_id: normalizeIdValue(row?.student_id),
+    school_id: normalizeIdValue(row?.school_id),
+    school_name: pickFirstValue(row?.school_name, ""),
+    class_id: normalizeIdValue(row?.class_id),
+    class_name: pickFirstValue(row?.class_name, ""),
+    student_name: pickFirstValue(row?.student_name, ""),
+    dob: pickFirstValue(row?.dob, ""),
+    current_address: pickFirstValue(row?.current_address, ""),
+    photo: pickFirstValue(row?.photo, ""),
+    guardian_name: pickFirstValue(row?.guardian_name, ""),
+    guardian_mobile: pickFirstValue(row?.guardian_mobile, ""),
+    guardian_image: pickFirstValue(row?.guardian_image, ""),
+    sec_guardian_name: pickFirstValue(row?.sec_guardian_name, ""),
+    sec_guardian_mobile: pickFirstValue(row?.sec_guardian_mobile, ""),
+    sec_guardian_image: pickFirstValue(row?.sec_guardian_image, ""),
+    product_id: normalizeIdValue(row?.product_id),
+    name,
+    covercode,
+    innercode,
+    personlized,
+    real_time_print: realTimePrint,
+    spine_code: spineCode,
+    book_size: bookSize,
+    type,
+    coverqr: buildBookQrCode({
+      isCover: true,
+      nonpOrder,
+      innercodePer: personlized,
+      studentId: row?.student_id,
+      innercode,
+      schoolId: row?.school_id,
+      batchId,
+      bookId,
+      layerType: type,
+      assignedNumber,
+    }),
+    innerqr: buildBookQrCode({
+      isCover: false,
+      nonpOrder,
+      innercodePer: personlized,
+      studentId: row?.student_id,
+      innercode,
+      schoolId: row?.school_id,
+      batchId,
+      bookId,
+      layerType: type,
+      assignedNumber,
+    }),
+    colour_1: pickFirstValue(overrideColour1, row?.colour_1, row?.colour1, ""),
+    colour_2: pickFirstValue(overrideColour2, row?.colour_2, row?.colour2, ""),
+    assigned_number: assignedNumber,
+    nonp_order: nonpOrder,
+    book_id: bookId,
+  };
+};
+
+const NONP_CLASS_LABELS = {
+  "01": "Playgroup",
+  "02": "Nursery",
+  "03": "LKG",
+  "04": "UKG",
+};
+
+const getNonpClassCodeFromCovercode = (covercode) => {
+  const digits = digitsOnly(covercode);
+  return digits.length >= 7 ? digits.slice(5, 7) : "";
+};
+
+const getNonpClassLabel = (classCode) => NONP_CLASS_LABELS[String(classCode || "").trim()] || String(classCode || "").trim();
+
+const listPreviewNonpSubjectsForMissingBatch = ({ targetBatchId, classCode }) => {
+  const normalizedTargetBatchId = Number(targetBatchId);
+  const normalizedClassCode = String(classCode || "").trim();
+  if (!Number.isInteger(normalizedTargetBatchId) || normalizedTargetBatchId <= 0) {
+    return { ok: false, message: "Invalid target batch id." };
+  }
+  if (!normalizedClassCode) {
+    return { ok: false, message: "Class is required." };
+  }
+
+  let batchDb;
+  try {
+    const batch = getMissingBatchRecord(normalizedTargetBatchId);
+    batchDb = new Database(batch.db_path);
+    ensureBatchDbSchema(batchDb);
+
+    const schools = batchDb
+      .prepare(`
+        SELECT school_id
+        FROM missing_batch_schools
+        ORDER BY id ASC
+      `)
+      .all()
+      .map((row) => normalizeIdValue(row?.school_id))
+      .filter(Boolean);
+
+    if (!schools.length) {
+      return { ok: false, message: "Add at least one school to the selected Missing batch first." };
+    }
+
+    const sourceResult = getMissingBooksBySchoolIds({ schoolIds: schools });
+    if (!sourceResult?.ok) {
+      return sourceResult;
+    }
+
+    const subjects = Array.from(
+      new Map(
+        (Array.isArray(sourceResult.data?.rows) ? sourceResult.data.rows : [])
+          .filter((row) => getNonpClassCodeFromCovercode(row?.covercode) === normalizedClassCode)
+          .map((row) => {
+            const name = String(row?.name || "").trim();
+            const covercode = String(row?.covercode || "").trim();
+            const innercode = String(row?.innercode || "").trim();
+            return [
+              [name.toLowerCase(), covercode, innercode].join("::"),
+              { name, covercode, innercode },
+            ];
+          })
+      ).values()
+    )
+      .filter((item) => item.name && item.covercode && item.innercode)
+      .sort((left, right) => {
+        const nameCompare = String(left.name || "").localeCompare(String(right.name || ""));
+        if (nameCompare !== 0) return nameCompare;
+        const coverCompare = String(left.covercode || "").localeCompare(String(right.covercode || ""));
+        if (coverCompare !== 0) return coverCompare;
+        return String(left.innercode || "").localeCompare(String(right.innercode || ""));
+      });
+
+    return {
+      ok: true,
+      data: {
+        target_batch_id: batch.id,
+        target_batch_name: batch.batch_name,
+        class_code: normalizedClassCode,
+        class_label: getNonpClassLabel(normalizedClassCode),
+        subject_count: subjects.length,
+        subjects,
+      },
+    };
+  } catch (error) {
+    return { ok: false, message: error.message || "Unable to load nonp subjects preview." };
+  } finally {
+    if (batchDb) {
+      batchDb.close();
+    }
+  }
+};
+
+const addNonpBooksToMissingBatch = ({ targetBatchId, subjectName, covercode, innercode, count, colour1, colour2 }) => {
+  const normalizedTargetBatchId = Number(targetBatchId);
+  if (!Number.isInteger(normalizedTargetBatchId) || normalizedTargetBatchId <= 0) {
+    return { ok: false, message: "Invalid target batch id." };
+  }
+
+  const normalizedSubjectName = String(subjectName || "").trim();
+  const normalizedCovercode = String(covercode || "").trim();
+  const normalizedInnercode = String(innercode || "").trim();
+  const normalizedCount = Number(count);
+  const normalizedColour1 = String(colour1 || "1").trim() || "1";
+  const normalizedColour2 = String(colour2 || "2").trim() || "2";
+
+  if (!(normalizedSubjectName && normalizedCovercode && normalizedInnercode)) {
+    return { ok: false, message: "Subject name, cover code, and inner code are required." };
+  }
+  if (!Number.isInteger(normalizedCount) || normalizedCount <= 0) {
+    return { ok: false, message: "Count must be a whole number greater than 0." };
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const targetBatch = registryDb
+    .prepare("SELECT id, batch_name, status, db_path FROM batches WHERE id = ?")
+    .get(normalizedTargetBatchId);
+
+  if (!targetBatch) {
+    return { ok: false, message: "Target batch not found." };
+  }
+  if (!isMissingBatchName(targetBatch.batch_name)) {
+    return { ok: false, message: "Target batch is not a Missing batch." };
+  }
+  if (targetBatch.status !== "new" && targetBatch.status !== "building") {
+    return { ok: false, message: "Only Missing batches with status 'new' or 'building' can accept rows." };
+  }
+
+  let targetDb;
+  try {
+    const bookDetailConfig = loadBookDetailConfig();
+    const config = bookDetailConfig[normalizedInnercode];
+    if (!config) {
+      return { ok: false, message: `Missing BOOKDETAIL configuration for innercode ${normalizedInnercode}.` };
+    }
+
+    targetDb = new Database(targetBatch.db_path);
+    ensureBatchDbSchema(targetDb);
+
+    const selectedSchools = targetDb
+      .prepare(`
+        SELECT school_id, school_name
+        FROM missing_batch_schools
+        ORDER BY id ASC
+      `)
+      .all();
+    const singleSchool = selectedSchools.length === 1 ? selectedSchools[0] : null;
+    const schoolId = normalizeIdValue(singleSchool?.school_id);
+    const schoolName = String(singleSchool?.school_name || "").trim();
+
+    const insertBookDetail = createBookDetailsInsertStatement(targetDb);
+    const nextBookIdStart =
+      Number(targetDb.prepare("SELECT MAX(COALESCE(book_id, 0)) AS v FROM BookDetails").get()?.v || 0) + 1;
+
+    const transaction = targetDb.transaction(() => {
+      let addedBookDetails = 0;
+      let nextBookId = nextBookIdStart;
+      const createdAt = new Date().toISOString();
+
+      for (let index = 0; index < normalizedCount; index += 1) {
+        const bookId = nextBookId;
+        const sourceId = [
+          "missing-nonp",
+          normalizedTargetBatchId,
+          normalizedInnercode,
+          Date.now(),
+          index + 1,
+        ].join("::");
+        const row = {
+          source_id: sourceId,
+          order_details_id: "",
+          student_id: "",
+          school_id: schoolId,
+          school_name: schoolName,
+          class_id: "",
+          class_name: "",
+          student_name: "",
+          dob: "",
+          current_address: "",
+          photo: "",
+          guardian_name: "",
+          guardian_mobile: "",
+          guardian_image: "",
+          sec_guardian_name: "",
+          sec_guardian_mobile: "",
+          sec_guardian_image: "",
+          product_id: "",
+          name: normalizedSubjectName,
+          covercode: normalizedCovercode,
+          innercode: normalizedInnercode,
+          personlized: pickFirstValue(config?.PER),
+          real_time_print: pickFirstValue(config?.REAL_TIME_PRINT),
+          spine_code: pickFirstValue(config?.["NEW SPINE COVER"]),
+          book_size: pickFirstValue(config?.["BOOK SIZE"]),
+          type: pickFirstValue(config?.TYPE),
+          coverqr: buildBookQrCode({
+            isCover: true,
+            nonpOrder: 1,
+            innercodePer: pickFirstValue(config?.PER),
+            studentId: "",
+            innercode: normalizedInnercode,
+            schoolId,
+            batchId: normalizedTargetBatchId,
+            bookId,
+            layerType: pickFirstValue(config?.TYPE),
+            assignedNumber: null,
+          }),
+          innerqr: buildBookQrCode({
+            isCover: false,
+            nonpOrder: 1,
+            innercodePer: pickFirstValue(config?.PER),
+            studentId: "",
+            innercode: normalizedInnercode,
+            schoolId,
+            batchId: normalizedTargetBatchId,
+            bookId,
+            layerType: pickFirstValue(config?.TYPE),
+            assignedNumber: null,
+          }),
+          colour_1: normalizedColour1,
+          colour_2: normalizedColour2,
+          assigned_number: null,
+          nonp_order: 1,
+          book_id: bookId,
+        };
+
+        insertBookDetailRow({
+          db: targetDb,
+          row,
+          insertBookDetail,
+          insertSchoolStudentBook: createSchoolStudentBookInsertStatement(targetDb),
+        });
+        addedBookDetails += 1;
+        nextBookId += 1;
+      }
+
+      if (targetBatch.status === "new") {
+        registryDb.prepare("UPDATE batches SET status = 'building' WHERE id = ?").run(normalizedTargetBatchId);
+      }
+
+      targetDb
+        .prepare("INSERT INTO batch_log (message, created_at) VALUES (?, ?)")
+        .run(
+          `Missing batch received ${normalizedCount} nonp book row(s) for ${normalizedSubjectName}.`,
+          createdAt
+        );
+
+      return { addedBookDetails };
+    });
+
+    const summary = transaction();
+    return {
+      ok: true,
+      data: {
+        target_batch_id: targetBatch.id,
+        target_batch_name: targetBatch.batch_name,
+        status: targetBatch.status === "new" ? "building" : targetBatch.status,
+        added_book_details: summary.addedBookDetails,
+      },
+    };
+  } catch (error) {
+    return { ok: false, message: error.message || "Unable to add nonp books to missing batch." };
+  } finally {
+    if (targetDb) {
+      targetDb.close();
+    }
+  }
+};
+
+const addAllNonpSubjectsToMissingBatch = ({ targetBatchId, classCode, count, colour1, colour2 }) => {
+  const normalizedTargetBatchId = Number(targetBatchId);
+  const normalizedCount = Number(count);
+  const normalizedColour1 = String(colour1 || "1").trim() || "1";
+  const normalizedColour2 = String(colour2 || "2").trim() || "2";
+
+  if (!Number.isInteger(normalizedTargetBatchId) || normalizedTargetBatchId <= 0) {
+    return { ok: false, message: "Invalid target batch id." };
+  }
+  if (!Number.isInteger(normalizedCount) || normalizedCount <= 0) {
+    return { ok: false, message: "Count must be a whole number greater than 0." };
+  }
+
+  const previewResult = listPreviewNonpSubjectsForMissingBatch({ targetBatchId: normalizedTargetBatchId, classCode });
+  if (!previewResult?.ok) {
+    return previewResult;
+  }
+
+  const subjects = Array.isArray(previewResult.data?.subjects) ? previewResult.data.subjects : [];
+  if (!subjects.length) {
+    return { ok: false, message: "No subjects found for the selected class." };
+  }
+
+  let addedBookDetails = 0;
+  for (const subject of subjects) {
+    const addResult = addNonpBooksToMissingBatch({
+      targetBatchId: normalizedTargetBatchId,
+      subjectName: subject.name,
+      covercode: subject.covercode,
+      innercode: subject.innercode,
+      count: normalizedCount,
+      colour1: normalizedColour1,
+      colour2: normalizedColour2,
+    });
+    if (!addResult?.ok) {
+      return addResult;
+    }
+    addedBookDetails += Number(addResult.data?.added_book_details || 0);
+  }
+
+  return {
+    ok: true,
+    data: {
+      target_batch_id: normalizedTargetBatchId,
+      target_batch_name: previewResult.data?.target_batch_name || "",
+      class_code: previewResult.data?.class_code || "",
+      class_label: previewResult.data?.class_label || "",
+      subject_count: subjects.length,
+      added_book_details: addedBookDetails,
+    },
+  };
 };
 
 const setBatchProcessing = ({ batchId }) => {
@@ -2529,6 +3380,1069 @@ const exportBatchBookDetailsExcel = async ({ batchId }) => {
   }
 };
 
+const getMissingBooksBySchoolIds = ({ schoolIds, studentName = "", className = "", subjectName = "" }) => {
+  const normalizedSchoolIds = Array.from(
+    new Set((Array.isArray(schoolIds) ? schoolIds : []).map((value) => normalizeIdValue(value)).filter(Boolean))
+  );
+  if (!normalizedSchoolIds.length) {
+    return { ok: false, message: "At least one school ID is required." };
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const placeholders = normalizedSchoolIds.map(() => "?").join(", ");
+  const studentNeedle = String(studentName || "").trim().toLowerCase();
+  const classNeedle = String(className || "").trim().toLowerCase();
+  const subjectNeedle = String(subjectName || "").trim().toLowerCase();
+  const schoolDirectory = resolveSchoolDirectory(normalizedSchoolIds);
+  const schoolSet = new Set(normalizedSchoolIds);
+
+  const batches = registryDb
+    .prepare(
+      `
+        SELECT DISTINCT b.id, b.batch_name, b.created_at, b.status, b.active, b.db_path
+        FROM batches b
+        INNER JOIN batch_orders bo ON bo.batch_id = b.id
+        WHERE COALESCE(TRIM(b.db_path), '') != ''
+          AND b.batch_name NOT LIKE 'Missing\\_%' ESCAPE '\\'
+          AND TRIM(COALESCE(bo.school_id, '')) IN (${placeholders})
+        ORDER BY datetime(b.created_at) DESC, b.id DESC
+      `
+    )
+    .all(...normalizedSchoolIds);
+
+  if (!batches.length) {
+    return {
+      ok: true,
+      data: {
+        school_count: normalizedSchoolIds.length,
+        batch_count: 0,
+        row_count: 0,
+        schools: normalizedSchoolIds.map((schoolId) => ({
+          school_id: schoolId,
+          school_name: schoolDirectory.get(schoolId) || schoolId,
+        })),
+        headers: ["batch_id", "batch_name", "batch_created_at", "batch_status", "batch_active"],
+        rows: [],
+      },
+    };
+  }
+
+  const rows = [];
+  const exportHeaders = new Set(["batch_id", "batch_name", "batch_created_at", "batch_status", "batch_active"]);
+
+  batches.forEach((batch) => {
+    if (!batch?.db_path || !fs.existsSync(batch.db_path)) {
+      return;
+    }
+
+    let batchDb;
+    try {
+      batchDb = new Database(batch.db_path, { readonly: true });
+      if (!tableExists(batchDb, "BookDetails")) {
+        return;
+      }
+
+      const columns = batchDb.prepare("PRAGMA table_info(BookDetails)").all();
+      columns.forEach((column) => {
+        const name = String(column?.name || "").trim();
+        if (name) exportHeaders.add(name);
+      });
+
+      const batchRows = batchDb
+        .prepare(
+          `
+            SELECT *
+            FROM BookDetails
+            WHERE TRIM(COALESCE(school_id, '')) IN (${placeholders})
+            ORDER BY school_name ASC, class_name ASC, student_name ASC, name ASC, id ASC
+          `
+        )
+        .all(...normalizedSchoolIds)
+        .filter((row) => {
+          const schoolId = normalizeIdValue(row?.school_id);
+          if (!schoolSet.has(schoolId)) {
+            return false;
+          }
+
+          const matchesStudent =
+            !studentNeedle || String(row?.student_name || "").trim().toLowerCase().includes(studentNeedle);
+          const matchesClass =
+            !classNeedle ||
+            String(row?.class_name || row?.class_id || "")
+              .trim()
+              .toLowerCase()
+              .includes(classNeedle);
+          const matchesSubject =
+            !subjectNeedle || String(row?.name || "").trim().toLowerCase().includes(subjectNeedle);
+          return matchesStudent && matchesClass && matchesSubject;
+        })
+        .map((row) => ({
+          batch_id: batch.id,
+          batch_name: batch.batch_name,
+          batch_created_at: batch.created_at,
+          batch_status: batch.status,
+          batch_active: batch.active,
+          ...row,
+        }));
+
+      rows.push(...batchRows);
+    } catch (_error) {
+      return;
+    } finally {
+      if (batchDb) {
+        batchDb.close();
+      }
+    }
+  });
+
+  rows.sort((left, right) => {
+    const schoolCompare = String(left.school_name || left.school_id || "").localeCompare(
+      String(right.school_name || right.school_id || "")
+    );
+    if (schoolCompare !== 0) return schoolCompare;
+
+    const batchCompare = String(left.batch_name || "").localeCompare(String(right.batch_name || ""));
+    if (batchCompare !== 0) return batchCompare;
+
+    const classCompare = String(left.class_name || left.class_id || "").localeCompare(
+      String(right.class_name || right.class_id || "")
+    );
+    if (classCompare !== 0) return classCompare;
+
+    const studentCompare = String(left.student_name || left.student_id || "").localeCompare(
+      String(right.student_name || right.student_id || "")
+    );
+    if (studentCompare !== 0) return studentCompare;
+
+    return String(left.name || "").localeCompare(String(right.name || ""));
+  });
+
+  return {
+    ok: true,
+    data: {
+      school_count: normalizedSchoolIds.length,
+      batch_count: new Set(rows.map((row) => String(row.batch_id || ""))).size,
+      row_count: rows.length,
+      schools: normalizedSchoolIds.map((schoolId) => ({
+        school_id: schoolId,
+        school_name: schoolDirectory.get(schoolId) || schoolId,
+      })),
+      headers: Array.from(exportHeaders),
+      rows,
+    },
+  };
+};
+
+const getMissingBooksBySchoolId = ({ schoolId }) => {
+  const normalizedSchoolId = normalizeIdValue(schoolId);
+  if (!normalizedSchoolId) {
+    return { ok: false, message: "School ID is required." };
+  }
+
+  const result = getMissingBooksBySchoolIds({ schoolIds: [normalizedSchoolId] });
+  if (!result?.ok) {
+    return result;
+  }
+
+  const school = Array.isArray(result.data?.schools) ? result.data.schools[0] || {} : {};
+  return {
+    ok: true,
+    data: {
+      school_id: normalizedSchoolId,
+      school_name: String(school.school_name || "").trim(),
+      row_count: Number(result.data?.row_count || 0),
+      batch_count: Number(result.data?.batch_count || 0),
+      headers: Array.isArray(result.data?.headers) ? result.data.headers : [],
+      rows: Array.isArray(result.data?.rows) ? result.data.rows : [],
+    },
+  };
+};
+
+const searchMissingBatchSourceRows = ({ targetBatchId, schoolIds = [], studentName = "", className = "", subjectName = "" }) => {
+  let batchDb;
+  try {
+    const batch = getMissingBatchRecord(targetBatchId);
+    batchDb = new Database(batch.db_path);
+    ensureBatchDbSchema(batchDb);
+
+    const schools = batchDb
+      .prepare(`
+        SELECT school_id, school_name, added_at
+        FROM missing_batch_schools
+        ORDER BY COALESCE(NULLIF(TRIM(school_name), ''), TRIM(school_id)) ASC, TRIM(school_id) ASC
+      `)
+      .all();
+
+    if (!schools.length) {
+      return {
+        ok: true,
+        data: {
+          batch_id: batch.id,
+          batch_name: batch.batch_name,
+          school_count: 0,
+          batch_count: 0,
+          row_count: 0,
+          schools: [],
+          headers: ["batch_id", "batch_name", "batch_created_at", "batch_status", "batch_active"],
+          rows: [],
+        },
+      };
+    }
+
+    const availableSchoolIds = new Set(schools.map((school) => normalizeIdValue(school?.school_id)).filter(Boolean));
+    const requestedSchoolIds = Array.from(
+      new Set((Array.isArray(schoolIds) ? schoolIds : []).map((value) => normalizeIdValue(value)).filter(Boolean))
+    );
+    const effectiveSchoolIds = requestedSchoolIds.length
+      ? requestedSchoolIds.filter((schoolId) => availableSchoolIds.has(schoolId))
+      : schools.map((school) => school.school_id);
+
+    if (!effectiveSchoolIds.length) {
+      return {
+        ok: true,
+        data: {
+          batch_id: batch.id,
+          batch_name: batch.batch_name,
+          school_count: 0,
+          batch_count: 0,
+          row_count: 0,
+          schools,
+          headers: ["batch_id", "batch_name", "batch_created_at", "batch_status", "batch_active"],
+          rows: [],
+        },
+      };
+    }
+
+    const result = getMissingBooksBySchoolIds({
+      schoolIds: effectiveSchoolIds,
+      studentName,
+      className,
+      subjectName,
+    });
+    if (!result?.ok) {
+      return result;
+    }
+
+    return {
+      ok: true,
+      data: {
+        batch_id: batch.id,
+        batch_name: batch.batch_name,
+        school_count: Number(result.data?.school_count || schools.length),
+        batch_count: Number(result.data?.batch_count || 0),
+        row_count: Number(result.data?.row_count || 0),
+        schools,
+        headers: Array.isArray(result.data?.headers) ? result.data.headers : [],
+        rows: Array.isArray(result.data?.rows) ? result.data.rows : [],
+      },
+    };
+  } catch (error) {
+    return { ok: false, message: error.message || "Unable to search Missing batch source rows." };
+  } finally {
+    if (batchDb) {
+      batchDb.close();
+    }
+  }
+};
+
+const exportMissingBooksCsv = async ({ schoolId }) => {
+  const result = getMissingBooksBySchoolId({ schoolId });
+  if (!result?.ok) {
+    return result;
+  }
+
+  const rows = Array.isArray(result.data?.rows) ? result.data.rows : [];
+  if (!rows.length) {
+    return { ok: false, message: "No BookDetails rows found for this school ID." };
+  }
+
+  const headers = Array.isArray(result.data?.headers)
+    ? result.data.headers.filter(Boolean)
+    : Object.keys(rows[0] || {});
+  const lines = [headers.map((header) => escapeCsvCell(header)).join(",")];
+  rows.forEach((row) => {
+    lines.push(headers.map((header) => escapeCsvCell(row?.[header])).join(","));
+  });
+
+  const schoolFilePart = toSafeFileNamePart(result.data?.school_id || schoolId, "school");
+  const defaultFileName = `${schoolFilePart}-Missing-Books.csv`;
+  const saveResult = await dialog.showSaveDialog({
+    title: "Export Missing Books to CSV",
+    defaultPath: path.join(app.getPath("documents"), defaultFileName),
+    filters: [{ name: "CSV", extensions: ["csv"] }],
+  });
+  if (saveResult.canceled || !saveResult.filePath) {
+    return { ok: false, message: "Export cancelled." };
+  }
+
+  fs.writeFileSync(saveResult.filePath, `\uFEFF${lines.join("\r\n")}`, "utf8");
+  return {
+    ok: true,
+    data: {
+      school_id: result.data?.school_id || String(schoolId || "").trim(),
+      school_name: result.data?.school_name || "",
+      row_count: rows.length,
+      file_path: saveResult.filePath,
+    },
+  };
+};
+
+const exportMissingBooksJson = async ({ schoolId }) => {
+  const result = getMissingBooksBySchoolId({ schoolId });
+  if (!result?.ok) {
+    return result;
+  }
+
+  const rows = Array.isArray(result.data?.rows) ? result.data.rows : [];
+  if (!rows.length) {
+    return { ok: false, message: "No BookDetails rows found for this school ID." };
+  }
+
+  const schoolFilePart = toSafeFileNamePart(result.data?.school_id || schoolId, "school");
+  const defaultFileName = `${schoolFilePart}-Missing-Books.json`;
+  const saveResult = await dialog.showSaveDialog({
+    title: "Export Missing Books to JSON",
+    defaultPath: path.join(app.getPath("documents"), defaultFileName),
+    filters: [{ name: "JSON", extensions: ["json"] }],
+  });
+  if (saveResult.canceled || !saveResult.filePath) {
+    return { ok: false, message: "Export cancelled." };
+  }
+
+  fs.writeFileSync(
+    saveResult.filePath,
+    JSON.stringify(
+      {
+        school_id: result.data?.school_id || "",
+        school_name: result.data?.school_name || "",
+        row_count: rows.length,
+        batch_count: result.data?.batch_count || 0,
+        rows,
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
+
+  return {
+    ok: true,
+    data: {
+      school_id: result.data?.school_id || "",
+      school_name: result.data?.school_name || "",
+      row_count: rows.length,
+      file_path: saveResult.filePath,
+    },
+  };
+};
+
+const addBookDetailsRowsToMissingBatch = ({ targetBatchId, items }) => {
+  const normalizedTargetBatchId = Number(targetBatchId);
+  if (!Number.isInteger(normalizedTargetBatchId) || normalizedTargetBatchId <= 0) {
+    return { ok: false, message: "Invalid target batch id." };
+  }
+
+  const requestedItems = Array.isArray(items) ? items : [];
+  if (!requestedItems.length) {
+    return { ok: false, message: "Select at least one row to add to the missing batch." };
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const targetBatch = registryDb
+    .prepare("SELECT id, batch_name, status, db_path FROM batches WHERE id = ?")
+    .get(normalizedTargetBatchId);
+
+  if (!targetBatch) {
+    return { ok: false, message: "Target batch not found." };
+  }
+  if (!isMissingBatchName(targetBatch.batch_name)) {
+    return { ok: false, message: "Target batch is not a Missing batch." };
+  }
+  if (targetBatch.status !== "new" && targetBatch.status !== "building") {
+    return { ok: false, message: "Only Missing batches with status 'new' or 'building' can accept rows." };
+  }
+
+  const normalizedItems = requestedItems
+    .map((item) => ({
+      sourceBatchId: Number(item?.batch_id ?? item?.sourceBatchId),
+      schoolId: normalizeIdValue(item?.school_id ?? item?.schoolId),
+      classId: normalizeIdValue(item?.class_id ?? item?.classId),
+      studentId: normalizeIdValue(item?.student_id ?? item?.studentId),
+      orderDetailsId: normalizeIdValue(item?.order_details_id ?? item?.orderDetailsId),
+      productId: normalizeIdValue(item?.product_id ?? item?.productId),
+      subjectName: String(item?.name ?? item?.subjectName ?? "").trim(),
+      customCovercode: String(item?.covercode ?? item?.customCovercode ?? "").trim(),
+      customInnercode: String(item?.innercode ?? item?.customInnercode ?? "").trim(),
+      customColour1: String(item?.colour_1 ?? item?.colour1 ?? item?.customColour1 ?? "").trim(),
+      customColour2: String(item?.colour_2 ?? item?.colour2 ?? item?.customColour2 ?? "").trim(),
+      providedProductDetail: item?.providedProductDetail || null,
+      providedProduct: item?.providedProduct || null,
+      providedClass: item?.providedClass || null,
+    }))
+    .filter(
+      (item) =>
+        Number.isInteger(item.sourceBatchId) &&
+        item.sourceBatchId > 0 &&
+        item.schoolId &&
+        item.classId &&
+        item.productId &&
+        item.subjectName
+    );
+
+  if (!normalizedItems.length) {
+    return { ok: false, message: "No valid rows were provided." };
+  }
+
+  const uniqueItems = Array.from(
+    new Map(
+      normalizedItems.map((item) => [
+        [
+          item.sourceBatchId,
+          item.schoolId,
+          item.classId,
+          item.studentId,
+          item.orderDetailsId,
+          item.productId,
+          item.subjectName,
+        ].join("::"),
+        item,
+      ])
+    ).values()
+  );
+
+  const itemsBySourceBatch = new Map();
+  uniqueItems.forEach((item) => {
+    if (!itemsBySourceBatch.has(item.sourceBatchId)) {
+      itemsBySourceBatch.set(item.sourceBatchId, []);
+    }
+    itemsBySourceBatch.get(item.sourceBatchId).push(item);
+  });
+
+  let targetDb;
+  try {
+    targetDb = new Database(targetBatch.db_path);
+    ensureBatchDbSchema(targetDb);
+
+    const targetTransaction = targetDb.transaction((groups) => {
+      const bookDetailConfig = loadBookDetailConfig();
+      let addedStudents = 0;
+      let addedProducts = 0;
+      let addedProductDetails = 0;
+      let addedClasses = 0;
+      let addedOrders = 0;
+      let addedSelections = 0;
+      let addedBookDetails = 0;
+      let addedSchoolStudentBooks = 0;
+      let nextBookId = Number(targetDb.prepare("SELECT MAX(COALESCE(book_id, 0)) AS v FROM BookDetails").get()?.v || 0) + 1;
+      const insertedSelectionKeys = new Set();
+      const customDetailCache = new Map();
+      const insertBookDetail = createBookDetailsInsertStatement(targetDb);
+      const insertSchoolStudentBook = createSchoolStudentBookInsertStatement(targetDb);
+      const existingBookDetail = targetDb.prepare(`
+        SELECT 1
+        FROM BookDetails
+        WHERE school_id = ?
+          AND class_id = ?
+          AND COALESCE(student_id, '') = COALESCE(?, '')
+          AND COALESCE(order_details_id, '') = COALESCE(?, '')
+          AND product_id = ?
+          AND LOWER(TRIM(COALESCE(name, ''))) = ?
+          AND COALESCE(innercode, '') = COALESCE(?, '')
+        LIMIT 1
+      `);
+      const insertSelectionMap = targetDb.prepare(`
+        INSERT OR IGNORE INTO missing_batch_book_detail_map (
+          student_source_id, order_details_id, student_id, school_id, class_id, product_id,
+          product_detail_source_id, subject_name, source_batch_id, added_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      groups.forEach((groupItems, sourceBatchId) => {
+        const sourceBatch = registryDb
+          .prepare("SELECT id, batch_name, db_path FROM batches WHERE id = ?")
+          .get(sourceBatchId);
+        if (!sourceBatch) {
+          throw new Error(`Source batch ${sourceBatchId} not found.`);
+        }
+
+        let sourceDb;
+        try {
+          sourceDb = new Database(sourceBatch.db_path, { readonly: true });
+          if (
+            !tableExists(sourceDb, "prepared_product_details") ||
+            !tableExists(sourceDb, "prepared_products") ||
+            !tableExists(sourceDb, "prepared_students") ||
+            !tableExists(sourceDb, "prepared_classes") ||
+            !tableExists(sourceDb, "orders") ||
+            !tableExists(sourceDb, "BookDetails")
+          ) {
+            throw new Error(`Source batch ${sourceBatch.batch_name} is missing prepared data.`);
+          }
+
+          groupItems.forEach((item) => {
+            let product = sourceDb
+              .prepare("SELECT * FROM prepared_products WHERE source_id = ?")
+              .get(item.productId);
+            if (!product && item.providedProduct) {
+              const providedProduct = normalizePreparedProducts([item.providedProduct])[0] || null;
+              if (
+                providedProduct &&
+                normalizeIdValue(providedProduct.source_id) === normalizeIdValue(item.productId)
+              ) {
+                product = providedProduct;
+              }
+            }
+            if (!product) {
+              throw new Error(`Prepared product not found for ${item.subjectName} in batch ${sourceBatch.batch_name}.`);
+            }
+
+            let classRow = sourceDb
+              .prepare(`
+                SELECT *
+                FROM prepared_classes
+                WHERE school_id = ? AND class_id = ?
+                ORDER BY id ASC
+                LIMIT 1
+              `)
+              .get(item.schoolId, item.classId);
+            if (!classRow && item.providedClass) {
+              const providedClass = normalizePreparedClasses([item.providedClass])[0] || null;
+              if (
+                providedClass &&
+                providedClass.school_id === item.schoolId &&
+                providedClass.class_id === item.classId
+              ) {
+                classRow = providedClass;
+              }
+            }
+
+            let orderRow = null;
+            if (item.orderDetailsId) {
+              orderRow = sourceDb
+                .prepare("SELECT * FROM orders WHERE order_number = ? ORDER BY id ASC LIMIT 1")
+                .get(item.orderDetailsId);
+            }
+            if (!orderRow) {
+              orderRow = sourceDb
+                .prepare(`
+                  SELECT *
+                  FROM orders
+                  WHERE school_id = ? AND product_id = ?
+                  ORDER BY id ASC
+                  LIMIT 1
+                `)
+                .get(item.schoolId, item.productId);
+            }
+
+            let studentRows = [];
+            if (item.studentId) {
+              if (item.orderDetailsId) {
+                studentRows = sourceDb
+                  .prepare(`
+                    SELECT *
+                    FROM prepared_students
+                    WHERE school_id = ?
+                      AND class_id = ?
+                      AND student_id = ?
+                      AND COALESCE(order_details_id, '') = COALESCE(?, '')
+                    ORDER BY id ASC
+                  `)
+                  .all(item.schoolId, item.classId, item.studentId, item.orderDetailsId);
+              }
+              if (!studentRows.length) {
+                studentRows = sourceDb
+                  .prepare(`
+                    SELECT *
+                    FROM prepared_students
+                    WHERE school_id = ?
+                      AND class_id = ?
+                      AND student_id = ?
+                    ORDER BY id ASC
+                  `)
+                  .all(item.schoolId, item.classId, item.studentId);
+              }
+            }
+
+            let detail = null;
+            if (item.customCovercode && item.customInnercode) {
+              const config = bookDetailConfig[item.customInnercode];
+              if (!config) {
+                throw new Error(`Missing BOOKDETAIL configuration for innercode ${item.customInnercode || "(blank)"}.`);
+              }
+
+              const detailCacheKey = [
+                item.schoolId,
+                item.classId,
+                item.productId,
+                String(item.subjectName || "").trim().toLowerCase(),
+              ].join("::");
+
+              if (customDetailCache.has(detailCacheKey)) {
+                detail = customDetailCache.get(detailCacheKey);
+              } else {
+                const existingCustomDetail = targetDb
+                  .prepare(`
+                    SELECT *
+                    FROM prepared_product_details
+                    WHERE product_id = ?
+                      AND school_id = ?
+                      AND class_id = ?
+                      AND LOWER(TRIM(COALESCE(name, ''))) = ?
+                    ORDER BY id ASC
+                    LIMIT 1
+                  `)
+                  .get(
+                    item.productId,
+                    item.schoolId,
+                    item.classId,
+                    String(item.subjectName || "").trim().toLowerCase()
+                  );
+
+                if (existingCustomDetail) {
+                  const existingCovercode = String(existingCustomDetail.covercode || "").trim();
+                  const existingInnercode = String(existingCustomDetail.innercode || "").trim();
+                  if (
+                    existingCovercode !== item.customCovercode ||
+                    existingInnercode !== item.customInnercode
+                  ) {
+                    throw new Error(
+                      `Subject ${item.subjectName} already exists for class ${item.classId} with different cover or inner code.`
+                    );
+                  }
+                  detail = existingCustomDetail;
+                } else {
+                  const createdAt = new Date().toISOString();
+                  const customSourceId = [
+                    "missing-custom",
+                    normalizedTargetBatchId,
+                    item.schoolId,
+                    item.classId,
+                    item.productId,
+                    Date.now(),
+                    addedProductDetails + 1,
+                  ].join("::");
+                  detail = {
+                    source_id: customSourceId,
+                    product_id: item.productId,
+                    school_id: item.schoolId,
+                    class_id: item.classId,
+                    name: item.subjectName,
+                    covercode: item.customCovercode,
+                    innercode: item.customInnercode,
+                    raw_json: JSON.stringify({
+                      id: customSourceId,
+                      product_id: item.productId,
+                      school_id: item.schoolId,
+                      class_id: item.classId,
+                      name: item.subjectName,
+                      covercode: item.customCovercode,
+                      innercode: item.customInnercode,
+                      source: "missing_batch_custom_subject",
+                      added_at: createdAt,
+                    }),
+                  };
+                }
+
+                customDetailCache.set(detailCacheKey, detail);
+              }
+            } else {
+              detail = sourceDb
+                .prepare(`
+                  SELECT *
+                  FROM prepared_product_details
+                  WHERE product_id = ?
+                    AND school_id = ?
+                    AND class_id = ?
+                    AND TRIM(COALESCE(name, '')) = ?
+                  ORDER BY id ASC
+                  LIMIT 1
+                `)
+                .get(item.productId, item.schoolId, item.classId, item.subjectName);
+              if (!detail && item.providedProductDetail) {
+                const providedDetail = normalizePreparedProductDetails([item.providedProductDetail])[0] || null;
+                if (
+                  providedDetail &&
+                  providedDetail.product_id === item.productId &&
+                  providedDetail.school_id === item.schoolId &&
+                  providedDetail.class_id === item.classId &&
+                  String(providedDetail.name || "").trim().toLowerCase() === String(item.subjectName || "").trim().toLowerCase()
+                ) {
+                  detail = providedDetail;
+                }
+              }
+              if (!detail) {
+                throw new Error(
+                  `Prepared product detail not found for ${item.subjectName} in batch ${sourceBatch.batch_name}.`
+                );
+              }
+            }
+
+            const selectionAddedAt = new Date().toISOString();
+            if (studentRows.length) {
+              studentRows.forEach((student) => {
+                const selectionKey = [
+                  normalizeIdValue(student?.source_id),
+                  normalizeIdValue(student?.order_details_id),
+                  normalizeIdValue(student?.student_id),
+                  normalizeIdValue(item.schoolId),
+                  normalizeIdValue(item.classId),
+                  normalizeIdValue(item.productId),
+                  normalizeIdValue(detail?.source_id),
+                ].join("::");
+                if (insertedSelectionKeys.has(selectionKey)) {
+                  return;
+                }
+
+                const insertResult = insertSelectionMap.run(
+                  normalizeIdValue(student?.source_id),
+                  normalizeIdValue(student?.order_details_id),
+                  normalizeIdValue(student?.student_id),
+                  normalizeIdValue(item.schoolId),
+                  normalizeIdValue(item.classId),
+                  normalizeIdValue(item.productId),
+                  normalizeIdValue(detail?.source_id),
+                  item.subjectName,
+                  sourceBatchId,
+                  selectionAddedAt
+                );
+                insertedSelectionKeys.add(selectionKey);
+                if (insertResult.changes > 0) {
+                  addedSelections += 1;
+                }
+              });
+            } else {
+              const selectionKey = [
+                "",
+                normalizeIdValue(item.orderDetailsId),
+                normalizeIdValue(item.studentId),
+                normalizeIdValue(item.schoolId),
+                normalizeIdValue(item.classId),
+                normalizeIdValue(item.productId),
+                normalizeIdValue(detail?.source_id),
+              ].join("::");
+              if (!insertedSelectionKeys.has(selectionKey)) {
+                const insertResult = insertSelectionMap.run(
+                  null,
+                  normalizeIdValue(item.orderDetailsId),
+                  normalizeIdValue(item.studentId),
+                  normalizeIdValue(item.schoolId),
+                  normalizeIdValue(item.classId),
+                  normalizeIdValue(item.productId),
+                  normalizeIdValue(detail?.source_id),
+                  item.subjectName,
+                  sourceBatchId,
+                  selectionAddedAt
+                );
+                insertedSelectionKeys.add(selectionKey);
+                if (insertResult.changes > 0) {
+                  addedSelections += 1;
+                }
+              }
+            }
+
+            if (classRow) {
+              const existingClass = targetDb
+                .prepare("SELECT 1 FROM prepared_classes WHERE school_id = ? AND class_id = ?")
+                .get(classRow.school_id, classRow.class_id);
+              if (!existingClass) {
+                targetDb
+                  .prepare(`
+                    INSERT INTO prepared_classes (class_id, class_name, school_id, school_name, raw_json)
+                    VALUES (?, ?, ?, ?, ?)
+                  `)
+                  .run(
+                    classRow.class_id,
+                    classRow.class_name,
+                    classRow.school_id,
+                    classRow.school_name,
+                    classRow.raw_json
+                  );
+                addedClasses += 1;
+              }
+            }
+
+            const existingProduct = targetDb
+              .prepare("SELECT 1 FROM prepared_products WHERE source_id = ? AND school_id = ?")
+              .get(product.source_id, product.school_id);
+            if (!existingProduct) {
+              targetDb
+                .prepare(`
+                  INSERT INTO prepared_products (source_id, school_id, name, type, raw_json)
+                  VALUES (?, ?, ?, ?, ?)
+                `)
+                .run(product.source_id, product.school_id, product.name, product.type, product.raw_json);
+              addedProducts += 1;
+            }
+
+            const existingDetail = targetDb
+              .prepare("SELECT 1 FROM prepared_product_details WHERE source_id = ? AND school_id = ?")
+              .get(detail.source_id, detail.school_id);
+            if (!existingDetail) {
+              targetDb
+                .prepare(`
+                  INSERT INTO prepared_product_details (
+                    source_id, product_id, school_id, class_id, name, covercode, innercode, raw_json
+                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                `)
+                .run(
+                  detail.source_id,
+                  detail.product_id,
+                  detail.school_id,
+                  detail.class_id,
+                  detail.name,
+                  detail.covercode,
+                  detail.innercode,
+                  detail.raw_json
+                );
+              addedProductDetails += 1;
+            }
+
+            if (orderRow) {
+              const existingOrder = targetDb
+                .prepare("SELECT 1 FROM orders WHERE order_number = ?")
+                .get(orderRow.order_number);
+              if (!existingOrder) {
+                targetDb
+                  .prepare(`
+                    INSERT INTO orders (
+                      order_number, school_id, school_name, personalized, product_id, product_type, order_date, added_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                  `)
+                  .run(
+                    orderRow.order_number,
+                    orderRow.school_id,
+                    orderRow.school_name,
+                    orderRow.personalized,
+                    orderRow.product_id,
+                    orderRow.product_type,
+                    orderRow.order_date,
+                    orderRow.added_at
+                  );
+                addedOrders += 1;
+              }
+            }
+
+            studentRows.forEach((student) => {
+              const existingStudent = targetDb
+                .prepare("SELECT 1 FROM prepared_students WHERE source_id = ?")
+                .get(student.source_id);
+              if (existingStudent) {
+                return;
+              }
+
+              targetDb
+                .prepare(`
+                  INSERT INTO prepared_students (
+                    source_id, order_details_id, student_id, school_id, school_name, colour1, colour2, assigned_number, class_id, class_name,
+                    student_name, dob, current_address, photo, guardian_name, guardian_mobile, guardian_image, sec_guardian_name,
+                    sec_guardian_mobile, sec_guardian_image, raw_json
+                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `)
+                .run(
+                  student.source_id,
+                  student.order_details_id,
+                  student.student_id,
+                  student.school_id,
+                  student.school_name,
+                  student.colour1,
+                  student.colour2,
+                  student.assigned_number,
+                  student.class_id,
+                  student.class_name,
+                  student.student_name,
+                  student.dob,
+                  student.current_address,
+                  student.photo,
+                  student.guardian_name,
+                  student.guardian_mobile,
+                  student.guardian_image,
+                  student.sec_guardian_name,
+                  student.sec_guardian_mobile,
+                  student.sec_guardian_image,
+                  student.raw_json
+                );
+              addedStudents += 1;
+            });
+
+            if (studentRows.length) {
+              studentRows.forEach((student) => {
+                let sourceBookRow = null;
+
+                if (item.customCovercode && item.customInnercode) {
+                  const config = bookDetailConfig[item.customInnercode];
+                  sourceBookRow = {
+                    source_id: student.source_id,
+                    order_details_id: student.order_details_id,
+                    student_id: student.student_id,
+                    school_id: student.school_id,
+                    school_name: student.school_name,
+                    class_id: student.class_id,
+                    class_name: student.class_name,
+                    student_name: student.student_name,
+                    dob: student.dob,
+                    current_address: student.current_address,
+                    photo: student.photo,
+                    guardian_name: student.guardian_name,
+                    guardian_mobile: student.guardian_mobile,
+                    guardian_image: student.guardian_image,
+                    sec_guardian_name: student.sec_guardian_name,
+                    sec_guardian_mobile: student.sec_guardian_mobile,
+                    sec_guardian_image: student.sec_guardian_image,
+                    product_id: item.productId,
+                    assigned_number: student.assigned_number,
+                    nonp_order: 0,
+                    personlized: pickFirstValue(config?.PER),
+                    real_time_print: pickFirstValue(config?.REAL_TIME_PRINT),
+                    spine_code: pickFirstValue(config?.["NEW SPINE COVER"]),
+                    book_size: pickFirstValue(config?.["BOOK SIZE"]),
+                    type: pickFirstValue(config?.TYPE),
+                  };
+                } else {
+                  sourceBookRow = sourceDb
+                    .prepare(
+                      `
+                        SELECT *
+                        FROM BookDetails
+                        WHERE school_id = ?
+                          AND class_id = ?
+                          AND COALESCE(student_id, '') = COALESCE(?, '')
+                          AND COALESCE(order_details_id, '') = COALESCE(?, '')
+                          AND product_id = ?
+                          AND TRIM(COALESCE(name, '')) = ?
+                        ORDER BY id ASC
+                        LIMIT 1
+                      `
+                    )
+                    .get(
+                      item.schoolId,
+                      item.classId,
+                      student.student_id,
+                      student.order_details_id,
+                      item.productId,
+                      item.subjectName
+                    );
+
+                  if (!sourceBookRow) {
+                    sourceBookRow = sourceDb
+                      .prepare(
+                        `
+                          SELECT *
+                          FROM BookDetails
+                          WHERE school_id = ?
+                            AND class_id = ?
+                            AND COALESCE(student_id, '') = COALESCE(?, '')
+                            AND product_id = ?
+                            AND TRIM(COALESCE(name, '')) = ?
+                          ORDER BY id ASC
+                          LIMIT 1
+                        `
+                      )
+                      .get(item.schoolId, item.classId, student.student_id, item.productId, item.subjectName);
+                  }
+                }
+
+                if (!sourceBookRow) {
+                  throw new Error(
+                    `BookDetails row not found for ${item.subjectName} and student ${student.student_name || student.student_id || "-"}.`
+                  );
+                }
+
+                const directRow = buildDirectBookDetailsRow({
+                  sourceRow: sourceBookRow,
+                  batchId: normalizedTargetBatchId,
+                  bookId: nextBookId,
+                  overrideName: item.subjectName,
+                  overrideCovercode: item.customCovercode || undefined,
+                  overrideInnercode: item.customInnercode || undefined,
+                  overridePersonlized: item.customInnercode ? pickFirstValue(bookDetailConfig[item.customInnercode]?.PER) : undefined,
+                  overrideRealTimePrint: item.customInnercode
+                    ? pickFirstValue(bookDetailConfig[item.customInnercode]?.REAL_TIME_PRINT)
+                    : undefined,
+                  overrideSpineCode: item.customInnercode
+                    ? pickFirstValue(bookDetailConfig[item.customInnercode]?.["NEW SPINE COVER"])
+                    : undefined,
+                  overrideBookSize: item.customInnercode
+                    ? pickFirstValue(bookDetailConfig[item.customInnercode]?.["BOOK SIZE"])
+                    : undefined,
+                  overrideType: item.customInnercode ? pickFirstValue(bookDetailConfig[item.customInnercode]?.TYPE) : undefined,
+                  overrideColour1: item.customInnercode ? item.customColour1 : undefined,
+                  overrideColour2: item.customInnercode ? item.customColour2 : undefined,
+                });
+
+                const existingRow = existingBookDetail.get(
+                  directRow.school_id,
+                  directRow.class_id,
+                  directRow.student_id,
+                  directRow.order_details_id,
+                  directRow.product_id,
+                  String(directRow.name || "").trim().toLowerCase(),
+                  directRow.innercode
+                );
+                if (existingRow) {
+                  return;
+                }
+
+                const createdSchoolStudentBook = insertBookDetailRow({
+                  db: targetDb,
+                  row: directRow,
+                  insertBookDetail,
+                  insertSchoolStudentBook,
+                });
+                addedBookDetails += 1;
+                if (createdSchoolStudentBook) {
+                  addedSchoolStudentBooks += 1;
+                }
+                nextBookId += 1;
+              });
+            }
+          });
+        } finally {
+          if (sourceDb) {
+            sourceDb.close();
+          }
+        }
+      });
+
+      if (targetBatch.status === "new") {
+        registryDb.prepare("UPDATE batches SET status = 'building' WHERE id = ?").run(normalizedTargetBatchId);
+      }
+
+      targetDb
+        .prepare("INSERT INTO batch_log (message, created_at) VALUES (?, ?)")
+        .run(`Missing batch received ${uniqueItems.length} selected row(s).`, new Date().toISOString());
+
+      return {
+        added_students: addedStudents,
+        added_products: addedProducts,
+        added_product_details: addedProductDetails,
+        added_classes: addedClasses,
+        added_orders: addedOrders,
+        added_selections: addedSelections,
+        added_book_details: addedBookDetails,
+        added_school_student_books: addedSchoolStudentBooks,
+      };
+    });
+
+    const summary = targetTransaction(itemsBySourceBatch);
+    return {
+      ok: true,
+      data: {
+        target_batch_id: targetBatch.id,
+        target_batch_name: targetBatch.batch_name,
+        status: targetBatch.status === "new" ? "building" : targetBatch.status,
+        selected_rows: uniqueItems.length,
+        ...summary,
+      },
+    };
+  } catch (error) {
+    return { ok: false, message: error.message || "Unable to add selected rows to missing batch." };
+  } finally {
+    if (targetDb) {
+      targetDb.close();
+    }
+  }
+};
+
 const exportOrdersStatusCsv = async ({ status, orders }) => {
   const normalizedOrders = Array.isArray(orders) ? orders : [];
   if (!normalizedOrders.length) {
@@ -2588,7 +4502,12 @@ const exportOrdersStatusCsv = async ({ status, orders }) => {
 
 const listBatchOrders = (batchId) => {
   const db = getBatchRegistryDb();
-  return db
+  const batch = db.prepare("SELECT id, batch_name, db_path FROM batches WHERE id = ?").get(batchId);
+  if (!batch) {
+    return [];
+  }
+
+  const registryRows = db
     .prepare(`
       SELECT
         bo.id,
@@ -2605,6 +4524,47 @@ const listBatchOrders = (batchId) => {
       ORDER BY datetime(bo.added_at) DESC, bo.id DESC
     `)
     .all(batchId);
+
+  let batchDb;
+  try {
+    batchDb = new Database(batch.db_path);
+    ensureBatchDbSchema(batchDb);
+
+    const orderMetaByNumber = new Map(
+      batchDb
+        .prepare(
+          `
+            SELECT order_number, product_type, status
+            FROM orders
+            ORDER BY id ASC
+          `
+        )
+        .all()
+        .map((row) => [
+          String(row.order_number || "").trim(),
+          {
+            product_type: row.product_type ?? null,
+            status: row.status ?? null,
+          },
+        ])
+    );
+
+    return registryRows.map((row) => ({
+      ...row,
+      product_type: orderMetaByNumber.get(String(row.order_number || "").trim())?.product_type ?? null,
+      status: orderMetaByNumber.get(String(row.order_number || "").trim())?.status ?? null,
+    }));
+  } catch (_error) {
+    return registryRows.map((row) => ({
+      ...row,
+      product_type: null,
+      status: null,
+    }));
+  } finally {
+    if (batchDb) {
+      batchDb.close();
+    }
+  }
 };
 
 const listBatchPersonalizedOrderIds = ({ batchId }) => {
@@ -3035,6 +4995,82 @@ const listBatchPreparedProductDetails = ({ batchId }) => {
   }
 };
 
+const listSourceBatchProductDetailsByContext = ({ batchId, schoolId, classId, productId }) => {
+  const normalizedBatchId = Number(batchId);
+  const normalizedSchoolId = normalizeIdValue(schoolId);
+  const normalizedClassId = normalizeIdValue(classId);
+  const normalizedProductId = normalizeIdValue(productId);
+  if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
+    return { ok: false, message: "Invalid batch id." };
+  }
+  if (!(normalizedSchoolId && normalizedClassId && normalizedProductId)) {
+    return { ok: false, message: "Batch, school, class, and product are required." };
+  }
+
+  const registryDb = getBatchRegistryDb();
+  const batch = registryDb
+    .prepare("SELECT id, batch_name, db_path FROM batches WHERE id = ?")
+    .get(normalizedBatchId);
+
+  if (!batch) {
+    return { ok: false, message: "Batch not found." };
+  }
+
+  let batchDb;
+  try {
+    batchDb = new Database(batch.db_path);
+    ensureBatchDbSchema(batchDb);
+
+    if (!tableExists(batchDb, "prepared_product_details")) {
+      return { ok: false, message: "Prepared product details are not available for this batch." };
+    }
+
+    const rows = batchDb
+      .prepare(
+        `
+          SELECT
+            ppd.source_id,
+            ppd.product_id,
+            ppd.school_id,
+            COALESCE(sch.school_name, '') AS school_name,
+            ppd.class_id,
+            ppd.name,
+            ppd.covercode,
+            ppd.innercode
+          FROM prepared_product_details ppd
+          LEFT JOIN (
+            SELECT school_id, MAX(school_name) AS school_name
+            FROM prepared_students
+            GROUP BY school_id
+          ) sch ON sch.school_id = ppd.school_id
+          WHERE TRIM(COALESCE(ppd.school_id, '')) = ?
+            AND TRIM(COALESCE(ppd.class_id, '')) = ?
+            AND TRIM(COALESCE(ppd.product_id, '')) = ?
+          ORDER BY ppd.name ASC, ppd.id ASC
+        `
+      )
+      .all(normalizedSchoolId, normalizedClassId, normalizedProductId);
+
+    return {
+      ok: true,
+      data: {
+        batch_id: batch.id,
+        batch_name: batch.batch_name,
+        school_id: normalizedSchoolId,
+        class_id: normalizedClassId,
+        product_id: normalizedProductId,
+        rows,
+      },
+    };
+  } catch (error) {
+    return { ok: false, message: error.message || "Unable to load source batch product details." };
+  } finally {
+    if (batchDb) {
+      batchDb.close();
+    }
+  }
+};
+
 const listBatchDetailedInfo = ({ batchId }) => {
   const normalizedBatchId = Number(batchId);
   if (!Number.isInteger(normalizedBatchId) || normalizedBatchId <= 0) {
@@ -3054,6 +5090,55 @@ const listBatchDetailedInfo = ({ batchId }) => {
   try {
     batchDb = new Database(batch.db_path);
     ensureBatchDbSchema(batchDb);
+
+    if (isMissingBatchName(batch.batch_name)) {
+      const rows = tableExists(batchDb, "BookDetails")
+        ? batchDb
+            .prepare(
+              `
+                SELECT school_id, school_name, student_name, class_name, class_id, name
+                FROM BookDetails
+                ORDER BY school_name ASC, student_name ASC, class_name ASC, name ASC, id ASC
+              `
+            )
+            .all()
+        : [];
+
+      const schools = new Map();
+      rows.forEach((row) => {
+        const schoolId = pickFirstValue(row?.school_id) || "-";
+        if (!schools.has(schoolId)) {
+          schools.set(schoolId, {
+            school_id: schoolId,
+            school_name: pickFirstValue(row?.school_name, schoolId),
+            missing_details: [],
+          });
+        }
+        schools.get(schoolId).missing_details.push({
+          student_name: pickFirstValue(row?.student_name, "-"),
+          class_name: pickFirstValue(row?.class_name, row?.class_id, "-"),
+          subject_name: pickFirstValue(row?.name, "-"),
+        });
+      });
+
+      return {
+        ok: true,
+        data: {
+          batch_id: batch.id,
+          batch_name: batch.batch_name,
+          status: batch.status,
+          missing_details_by_school: Array.from(schools.values()).sort((left, right) =>
+            pickFirstValue(left?.school_name, left?.school_id).localeCompare(
+              pickFirstValue(right?.school_name, right?.school_id)
+            )
+          ),
+          totals: {
+            school_count: schools.size,
+            row_count: rows.length,
+          },
+        },
+      };
+    }
 
     const preparedClasses = batchDb
       .prepare(`
@@ -3829,8 +5914,15 @@ const moveOrderToBatch = ({ orderNumber, fromBatchId, toBatchId }) => {
     .prepare("SELECT id, batch_name, status, db_path FROM batches WHERE id = ?")
     .get(normalizedFromBatchId);
   if (!sourceBatch) return { ok: false, message: "Source batch not found." };
-  if (sourceBatch.status !== "building") {
-    return { ok: false, message: "Orders can be moved only from batches with status 'building'." };
+  if (
+    sourceBatch.status !== "new" &&
+    sourceBatch.status !== "building" &&
+    sourceBatch.status !== "processing"
+  ) {
+    return {
+      ok: false,
+      message: "Orders can be moved only from batches with status 'new', 'building' or 'processing'.",
+    };
   }
 
   const targetBatch = registryDb
@@ -4323,12 +6415,37 @@ const createBatchesWindow = () => {
   return batchesWindow;
 };
 
+const createMissingBooksWindow = () => {
+  if (missingBooksWindow && !missingBooksWindow.isDestroyed()) {
+    missingBooksWindow.focus();
+    return missingBooksWindow;
+  }
+
+  missingBooksWindow = new BrowserWindow({
+    width: 1100,
+    height: 760,
+    backgroundColor: "#0f1015",
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+    },
+  });
+  missingBooksWindow.loadFile("missing-books.html");
+  missingBooksWindow.on("closed", () => {
+    missingBooksWindow = null;
+  });
+
+  return missingBooksWindow;
+};
+
 app.whenReady().then(() => {
   getBatchRegistryDb();
   getAssigneeDb();
   mainWindow = createWindow();
   ipcMain.handle("open-batches-window", () => {
     createBatchesWindow();
+  });
+  ipcMain.handle("open-missing-books-window", () => {
+    createMissingBooksWindow();
   });
   ipcMain.handle("list-batches", () => {
     try {
@@ -4342,6 +6459,13 @@ app.whenReady().then(() => {
       return { ok: true, data: listAvailableBatches() };
     } catch (error) {
       return { ok: false, message: error.message || "Unable to load available batches." };
+    }
+  });
+  ipcMain.handle("list-missing-batches", () => {
+    try {
+      return { ok: true, data: listMissingBatches() };
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to load missing batches." };
     }
   });
   ipcMain.handle("list-batch-orders", (_event, batchId) => {
@@ -4381,6 +6505,13 @@ app.whenReady().then(() => {
       return listBatchPreparedProductDetails(payload || {});
     } catch (error) {
       return { ok: false, message: error.message || "Unable to load prepared product details." };
+    }
+  });
+  ipcMain.handle("list-source-batch-product-details-by-context", (_event, payload) => {
+    try {
+      return listSourceBatchProductDetailsByContext(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to load source batch product details." };
     }
   });
   ipcMain.handle("list-batch-detailed-info", (_event, payload) => {
@@ -4550,6 +6681,76 @@ app.whenReady().then(() => {
       return { ok: false, message: error.message || "Unable to export BookDetails." };
     }
   });
+  ipcMain.handle("find-missing-books-by-school-id", (_event, payload) => {
+    try {
+      return getMissingBooksBySchoolId(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to load missing books." };
+    }
+  });
+  ipcMain.handle("list-missing-batch-schools", (_event, payload) => {
+    try {
+      return listMissingBatchSchools(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to load Missing batch schools." };
+    }
+  });
+  ipcMain.handle("add-schools-to-missing-batch", (_event, payload) => {
+    try {
+      return addSchoolsToMissingBatch(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to add schools to Missing batch." };
+    }
+  });
+  ipcMain.handle("search-missing-batch-source-rows", (_event, payload) => {
+    try {
+      return searchMissingBatchSourceRows(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to search Missing batch source rows." };
+    }
+  });
+  ipcMain.handle("export-missing-books-csv", async (_event, payload) => {
+    try {
+      return await exportMissingBooksCsv(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to export missing books CSV." };
+    }
+  });
+  ipcMain.handle("export-missing-books-json", async (_event, payload) => {
+    try {
+      return await exportMissingBooksJson(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to export missing books JSON." };
+    }
+  });
+  ipcMain.handle("add-bookdetails-rows-to-missing-batch", (_event, payload) => {
+    try {
+      return addBookDetailsRowsToMissingBatch(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to add rows to missing batch." };
+    }
+  });
+  ipcMain.handle("add-nonp-books-to-missing-batch", (_event, payload) => {
+    try {
+      return addNonpBooksToMissingBatch(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to add nonp books to missing batch." };
+    }
+  });
+  ipcMain.handle("preview-nonp-subjects-for-missing-batch", (_event, payload) => {
+    try {
+      return listPreviewNonpSubjectsForMissingBatch(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to preview nonp subjects." };
+    }
+  });
+  ipcMain.handle("add-all-nonp-subjects-to-missing-batch", (_event, payload) => {
+    try {
+      return addAllNonpSubjectsToMissingBatch(payload || {});
+    } catch (error) {
+      return { ok: false, message: error.message || "Unable to add all nonp subjects to missing batch." };
+    }
+  });
   ipcMain.handle("export-orders-status-csv", async (_event, payload) => {
     try {
       return await exportOrdersStatusCsv(payload || {});
@@ -4634,6 +6835,82 @@ app.whenReady().then(() => {
         }
       }
       return { ok: false, message: error.message || "Failed to create batch." };
+    } finally {
+      if (db) {
+        db.close();
+      }
+    }
+  });
+  ipcMain.handle("create-missing-batch", (_event, batchName) => {
+    const rootDir = BATCH_ROOT_DIR;
+    if (!batchName || typeof batchName !== "string") {
+      return { ok: false, message: "Missing batch name is required." };
+    }
+    if (!fs.existsSync(rootDir)) {
+      return { ok: false, message: "Batch storage location not found." };
+    }
+
+    const baseName = String(batchName || "").trim();
+    const prefixedName = isMissingBatchName(baseName) ? baseName : `${MISSING_BATCH_PREFIX}${baseName}`;
+    const safeBase = prefixedName
+      .replace(/\s+/g, "-")
+      .replace(/[^a-zA-Z0-9-_]/g, "")
+      .replace(/-+/g, "-");
+    if (!safeBase || safeBase === MISSING_BATCH_PREFIX.replace(/[^a-zA-Z0-9-_]/g, "")) {
+      return { ok: false, message: "Missing batch name must include letters or numbers." };
+    }
+
+    const now = new Date();
+    const dateSuffix = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
+      now.getDate()
+    ).padStart(2, "0")}`;
+    const fileName = `${safeBase}-${dateSuffix}.db`;
+    const dbPath = path.join(rootDir, fileName);
+
+    if (fs.existsSync(dbPath)) {
+      return { ok: false, message: "Missing batch name already exists for today." };
+    }
+
+    let db;
+    const registryDb = getBatchRegistryDb();
+    const createdAt = new Date().toISOString();
+    try {
+      db = new Database(dbPath);
+      ensureBatchDbSchema(db);
+      db.prepare("INSERT INTO batch_info (batch_name, created_at) VALUES (?, ?)").run(prefixedName, createdAt);
+
+      const info = registryDb.prepare(`
+        INSERT INTO batches (batch_name, created_at, status, active, db_path)
+        VALUES (?, ?, 'new', 0, ?)
+      `).run(prefixedName, createdAt, dbPath);
+      const registryBackupPath = backupBatchRegistry(registryDb);
+
+      return {
+        ok: true,
+        data: {
+          id: info.lastInsertRowid,
+          batch_name: prefixedName,
+          created_at: createdAt,
+          status: "new",
+          active: 0,
+          db_path: dbPath,
+          registry_backup_path: registryBackupPath,
+        },
+        batchName: prefixedName,
+        fileName,
+        registryBackupPath,
+      };
+    } catch (error) {
+      if (db && fs.existsSync(dbPath)) {
+        try {
+          db.close();
+          db = null;
+        } catch {}
+        try {
+          fs.unlinkSync(dbPath);
+        } catch {}
+      }
+      return { ok: false, message: error.message || "Failed to create missing batch." };
     } finally {
       if (db) {
         db.close();

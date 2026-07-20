@@ -108,6 +108,12 @@ body {
   max-width: 520px;
 }
 
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
 .tabs {
   display: flex;
   flex-wrap: wrap;
@@ -194,9 +200,27 @@ body {
   color: var(--muted);
 }
 
+.text-area-input {
+  min-height: 116px;
+  resize: vertical;
+  width: 100%;
+}
+
+.stack-input {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .helper-text {
   color: var(--muted);
   font-size: 12px;
+}
+
+#missing-batch-school-filter-summary {
+  width: 100%;
+  line-height: 1.5;
+  word-break: break-word;
 }
 
 .status-text {
@@ -228,8 +252,24 @@ body {
   margin-bottom: 16px;
 }
 
+.table-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .table-header h2 {
   font-size: 20px;
+}
+
+.table-count {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--panel-soft);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .table-wrapper {
@@ -264,10 +304,31 @@ tbody tr:hover {
   background: var(--panel-soft);
 }
 
+.tab-panel thead th:first-child,
+.tab-panel tbody td:first-child {
+  width: auto;
+  text-align: left;
+}
+
 .action-group {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.summary-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.summary-pill {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
 }
 
 .action-menu {
@@ -342,6 +403,11 @@ button {
   background: transparent;
   color: var(--text);
   cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .danger-button {

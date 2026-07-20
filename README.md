@@ -28,6 +28,37 @@ Prerequisite: Python must be available as `python` or `py -3`.
 npm start
 ```
 
+On Windows, you can also double-click `WINAPP.bat` after `npm install`.
+
+## Portable Build For Other Users
+
+For other users, the better solution is a packaged Windows app instead of Docker.
+This project is an Electron desktop app that:
+
+- opens native Windows windows
+- uses Windows network paths like `\\pixartnas\...`
+- spawns Python scripts locally
+
+Because of that, Docker is not a good fit for normal end-user running.
+
+Build a portable `.exe` with:
+
+```bash
+npm install
+npm run dist
+```
+
+Output will be created in `release/`.
+You can share the generated portable `WINAPP` executable with other Windows users so they do not need to run `npm start`.
+
+## Docker Note
+
+Docker is possible only as a limited build/helper environment here, not as a practical way to run the full desktop app for end users.
+If you want, the next step can be:
+
+- package the Python book generator as an `.exe` too, so end users do not need Python installed
+- add an installer build in addition to the portable `.exe`
+
 ## Additional Subprojects
 
 ### `SORTING_STATION`

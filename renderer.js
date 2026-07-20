@@ -15,6 +15,13 @@ if (batchesButton && window.appBridge?.openBatchesWindow) {
   });
 }
 
+const missingBooksButton = document.getElementById("open-missing-books");
+if (missingBooksButton && window.appBridge?.openMissingBooksWindow) {
+  missingBooksButton.addEventListener("click", () => {
+    window.appBridge.openMissingBooksWindow();
+  });
+}
+
 const fromApiStatus = (status) => {
   if (status === "pending approval" || status === "approval_pending") {
     return "pending_approval";
@@ -117,10 +124,21 @@ const loadBatchAssignments = async () => {
     });
   });
 
-  orderAssignmentMap.forEach((assignedTo, orderNumber) => {
+  orderAssignments.forEach((item) => {
+    const orderNumber = String(item.order_number);
+    const assignedTo = String(item.assigned_to || "").trim();
     if (!mergedMap.has(orderNumber)) {
-      mergedMap.set(orderNumber, { assigned_to: String(assignedTo || "").trim() });
+      mergedMap.set(orderNumber, {
+        assigned_to: assignedTo,
+      });
+      return;
     }
+
+    const existing = mergedMap.get(orderNumber) || {};
+    mergedMap.set(orderNumber, {
+      ...existing,
+      assigned_to: String(existing.assigned_to || assignedTo || "").trim(),
+    });
   });
 
   return mergedMap;
@@ -134,7 +152,7 @@ const loadOrders = async (
   }
   try {
     const [result, batchAssignments] = await Promise.all([
-      fetchOrders(toClaimStatus(status)),
+      fetchOrders(toClaimStatus("all")),
       loadBatchAssignments(),
     ]);
     if (!result.ok) {
@@ -150,6 +168,15 @@ const loadOrders = async (
       product_id: order.product_id || order?.product?.id || "",
       product_type: order.product_type || "",
       order_date: order.created_at,
+      updated_at: String(
+        order.updated_at ||
+          order.updatedAt ||
+          order.order_updated_at ||
+          order.orderUpdatedAt ||
+          order.details_updated_at ||
+          order.detailsUpdatedAt ||
+          ""
+      ).trim(),
       assigned_to: String(batchAssignments.get(String(order.id))?.assigned_to || "").trim(),
       order_type: normalizeOrderType(order),
       status: fromApiStatus(order.status),

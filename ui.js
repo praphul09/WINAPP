@@ -32,6 +32,7 @@ const STATUS_CHIPS = {
 
 const tabsContainer = document.getElementById("status-tabs");
 const tableTitle = document.getElementById("table-title");
+const tableCount = document.getElementById("table-count");
 const ordersBody = document.getElementById("orders-body");
 const refreshBtn = document.getElementById("refresh-btn");
 const lastRefresh = document.getElementById("last-refresh");
@@ -123,6 +124,16 @@ const formatDate = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.valueOf())) return value;
   return date.toLocaleDateString();
+};
+
+const formatCompactDate = (value) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.valueOf())) return value;
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear()).slice(-2);
+  return `${day} ${month} ${year}`;
 };
 
 const getNameFilterForStatus = (status) =>
@@ -237,6 +248,36 @@ const getSelectedOrdersForStatus = (status) => {
     selectedOrdersByStatus.set(status, new Set());
   }
   return selectedOrdersByStatus.get(status);
+};
+
+const getSchoolOrderCounts = (orders) => {
+  const counts = new Map();
+
+  (Array.isArray(orders) ? orders : []).forEach((order) => {
+    const schoolId = String(order?.school_id || "").trim();
+    const schoolName = String(order?.school_name || "").trim().toLowerCase();
+    const key = schoolId || schoolName;
+
+    if (!counts.has(key)) {
+      counts.set(key, 0);
+    }
+
+    counts.set(key, counts.get(key) + 1);
+  });
+
+  return counts;
+};
+
+const getSchoolOrderCountsForActiveProductType = (orders) => {
+  const productFiltered =
+    activeOrderTypeFilter === "all"
+      ? Array.isArray(orders)
+        ? orders
+        : []
+      : (Array.isArray(orders) ? orders : []).filter(
+          (order) => getNormalizedOrderType(order) === activeOrderTypeFilter
+        );
+  return getSchoolOrderCounts(productFiltered);
 };
 
 const syncSelectionControls = (state, visibleOrders) => {
@@ -1782,7 +1823,7 @@ const handleGetApprovalLink = async (order) => {
         title: "Approval link",
         message: result.data?.message || "Approval link generated successfully.",
         table: {
-          headers: ["Link"],
+          headers: [`Order Id - ${escapeHtml(String(order.order_number || "-"))}`],
           rows: [[`<a href="${safeLink}" target="_blank" rel="noopener noreferrer">${safeLink}</a>`]],
         },
       });
@@ -2011,8 +2052,11 @@ const renderActions = (order) => {
     panel.appendChild(button);
   };
 
-  // Temporarily disable "Change batch" for processing orders in the main orders UI.
-  const canChangeBatch = false;
+  const canChangeBatch =
+    isOrderAssignedToBatch(order) &&
+    (order.status === "processing" ||
+      order.batch_status === "building" ||
+      order.batch_status === "New");
 
   if (order.status === "new") {
     addMenuButton("Change assignee", "ghost-button", () => {
@@ -2114,12 +2158,16 @@ const renderTable = (state) => {
   syncBatchFilterOptions(state.orders);
   syncStatusFilterVisibility(state.activeStatus);
   const filtered = getVisibleOrders(state);
+  const schoolOrderCounts = getSchoolOrderCountsForActiveProductType(state.orders);
   currentVisibleOrders = filtered;
   const selected = getSelectedOrdersForStatus(state.activeStatus);
 
   tableTitle.textContent =
     STATUS_LABELS.find((status) => status.key === state.activeStatus)?.label ||
     "Orders";
+  if (tableCount) {
+    tableCount.textContent = `${filtered.length} total`;
+  }
   nameFilterInput.value = nameFiltersByStatus.get(state.activeStatus) || "";
   statusFilterSelect.value = state.activeStatus === "all" ? activeStatusFilter : "all";
   orderTypeFilterSelect.value = activeOrderTypeFilter;
@@ -2129,7 +2177,7 @@ const renderTable = (state) => {
   if (filtered.length === 0) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
-    cell.colSpan = 9;
+    cell.colSpan = 11;
     cell.textContent = "No orders to display.";
     cell.style.color = "var(--muted)";
     row.appendChild(cell);
@@ -2172,9 +2220,19 @@ const renderTable = (state) => {
     schoolIdCell.textContent = order.school_id || "-";
     row.appendChild(schoolIdCell);
 
+    const repeatCountCell = document.createElement("td");
+    const repeatKey =
+      String(order?.school_id || "").trim() || String(order?.school_name || "").trim().toLowerCase();
+    repeatCountCell.textContent = String(schoolOrderCounts.get(repeatKey) || 0);
+    row.appendChild(repeatCountCell);
+
     const dateCell = document.createElement("td");
-    dateCell.textContent = formatDate(order.order_date);
+    dateCell.textContent = formatCompactDate(order.order_date);
     row.appendChild(dateCell);
+
+    const updatedDateCell = document.createElement("td");
+    updatedDateCell.textContent = formatCompactDate(order.updated_at);
+    row.appendChild(updatedDateCell);
 
     const statusCell = document.createElement("td");
     statusCell.appendChild(renderStatusChip(order.status));

@@ -18,6 +18,7 @@
         </div>
         <div class="topbar-actions">
           <button class="ghost-button" id="open-batches">Batches</button>
+          <button class="ghost-button" id="open-missing-books">Missing Books</button>
           <div class="status-pill" id="last-refresh">Waiting for data</div>
         </div>
       </header>
@@ -32,7 +33,10 @@
 
         <section class="table-card">
           <div class="table-header">
-            <h2 id="table-title">New orders</h2>
+            <div class="table-title-group">
+              <h2 id="table-title">New orders</h2>
+              <span class="table-count" id="table-count">0</span>
+            </div>
             <div class="form-row" style="justify-content: flex-end; width: 100%;">
               <button class="ghost-button" id="refresh-btn">Refresh</button>
             </div>
@@ -47,7 +51,9 @@
                   <th>Order #</th>
                   <th>School</th>
                   <th>School ID</th>
+                  <th>Order Repeat</th>
                   <th>Order date</th>
+                  <th>Updated date</th>
                   <th>Status</th>
                   <th>Assigned</th>
                   <th>Batch</th>

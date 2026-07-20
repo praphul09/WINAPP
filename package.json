@@ -5,15 +5,44 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "dev": "electron .",
+    "dist": "electron-builder --win portable",
+    "dist:dir": "electron-builder --win dir",
     "create:test-batch": "electron scripts/create-test-batch.js",
     "setup:book-generator-vendor": "powershell -ExecutionPolicy Bypass -File scripts/setup-book-generator-vendor.ps1"
   },
   "devDependencies": {
     "electron": "^30.0.0",
+    "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9"
   },
   "dependencies": {
     "better-sqlite3": "^12.6.2",
     "jspdf": "^4.1.0"
+  },
+  "build": {
+    "appId": "com.winapp.desktop",
+    "productName": "WINAPP",
+    "asar": false,
+    "files": [
+      "**/*",
+      "!node_modules/.cache{,/**}",
+      "!dist{,/**}",
+      "!release{,/**}",
+      "!.git{,/**}"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
   }
 }

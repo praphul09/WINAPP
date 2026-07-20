@@ -43,6 +43,7 @@ STRIPE_TOP_MARGIN_NEW = 7 * MM_TO_PT
 STRIPE_TOP_MARGIN =  15 * MM_TO_PT
 MAX_OUTPUT_FILENAME_LENGTH = 100
 LONG_FILENAME_SUFFIX = "_many_more.pdf"
+MISSING_BATCH_PREFIX = "Missing_"
 
 COLOR_INDEX_MAP = {
     1: "#9A6324",
@@ -253,6 +254,21 @@ def draw_cover_book_id(
     c.restoreState()
 
 
+def draw_cover_ms_label(
+    c: canvas.Canvas,
+    page_width: float,
+    page_height: float,
+    text_color=colors.black,
+) -> None:
+    ms_x = 5 * MM_TO_PT
+    ms_y = max(page_height - (5 * MM_TO_PT), 0)
+    c.saveState()
+    c.setFont("Helvetica-Bold", 7)
+    c.setFillColor(text_color)
+    c.drawString(ms_x, ms_y, "MS")
+    c.restoreState()
+
+
 def draw_batch_id_above_qr(
     c: canvas.Canvas,
     page_width: float,
@@ -341,6 +357,7 @@ def create_overlay_bytes(
     include_batch_id: bool = False,
     book_id_color=colors.black,
     school_name: str = "",
+    include_ms_label: bool = False,
 ) -> bytes:
     packet = io.BytesIO()
     canvas_width, canvas_height = (page_width, page_height)
@@ -376,6 +393,13 @@ def create_overlay_bytes(
                 book_id,
                 text_color=book_id_color,
             )
+            if include_ms_label:
+                draw_cover_ms_label(
+                    c,
+                    effective_content_width,
+                    effective_content_height,
+                    text_color=book_id_color,
+                )
         draw_cover_school_name(c, school_name)
         draw_cover_spine_code(c, effective_content_width, effective_content_height, spine_code)
         c.restoreState()
@@ -459,6 +483,7 @@ def merge_overlay(
     include_batch_id: bool = False,
     book_id_color=colors.black,
     school_name: str = "",
+    include_ms_label: bool = False,
 ) -> None:
     page_width = float(page.mediabox.width)
     page_height = float(page.mediabox.height)
@@ -483,6 +508,7 @@ def merge_overlay(
         include_batch_id=include_batch_id,
         book_id_color=book_id_color,
         school_name=school_name,
+        include_ms_label=include_ms_label,
     )
     overlay_reader = PdfReader(io.BytesIO(overlay_bytes))
     page.merge_page(overlay_reader.pages[0])
@@ -520,6 +546,7 @@ def process_pdf(
     batch_id: int | None = None,
     cover_book_id_color=colors.black,
     school_name: str = "",
+    include_ms_label: bool = False,
 ) -> None:
     if not source_path.exists():
         raise FileNotFoundError(str(source_path))
@@ -559,6 +586,7 @@ def process_pdf(
                 batch_id=batch_id,
                 book_id_color=cover_book_id_color,
                 school_name=school_name,
+                include_ms_label=include_ms_label,
             )
         elif is_last_page:
             merge_overlay(
@@ -706,6 +734,15 @@ def make_safe_filename_part(value: str, fallback: str) -> str:
     return sanitized or fallback
 
 
+def normalize_book_size_label(value: str) -> str:
+    normalized = str(value or "").strip().upper()
+    if normalized == "SMALL":
+        return "SMALL"
+    if normalized in {"BIG", "MEDIUM", "MIDEM", "MIDDLE", "BIG"}:
+        return "NORMAL"
+    return normalized or "NORMAL"
+
+
 def collect_shared_inner_groups(book_rows: list[sqlite3.Row]) -> list[dict]:
     groups: dict[tuple[str, str], dict] = {}
     for row in book_rows:
@@ -734,7 +771,7 @@ def collect_shared_inner_groups(book_rows: list[sqlite3.Row]) -> list[dict]:
                 "row": row,
                 "count": 0,
                 "spine_code": str(row["spine_code"] or "").strip(),
-                "book_size": str(row["book_size"] or "").strip().upper() or "UNSPECIFIED",
+                "book_size": normalize_book_size_label(row["book_size"]),
             },
         )
         group["count"] += 1
@@ -755,7 +792,7 @@ def copy_shared_inner_groups_to_binders(batch_id: int, inner_groups: list[dict])
             raise FileNotFoundError(f"Shared realtime inner PDF not found for innercode {innercode}: {source_path}")
 
         spine_code = make_safe_filename_part(group["spine_code"], innercode)
-        size_folder = str(group["book_size"] or "").strip().upper() or "UNSPECIFIED"
+        size_folder = normalize_book_size_label(group["book_size"])
         output_path = binders_root / size_folder / f"{binder_number + 200}_{group['count']} copies {spine_code}.pdf"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source_path, output_path)
@@ -836,7 +873,7 @@ def build_cover_group(row: sqlite3.Row, source_path: Path, page_count: int) -> d
         "innercode": str(row["innercode"] or ""),
         "personlized": str(row["personlized"] or "").strip().upper(),
         "real_time_print": str(row["real_time_print"] or "").strip().upper(),
-        "book_size": str(row["book_size"] or "").strip().upper(),
+        "book_size": normalize_book_size_label(row["book_size"]),
         "spine_code": str(row["spine_code"] or "").strip(),
         "page_count": page_count,
         "pdf_paths": [source_path],
@@ -908,7 +945,7 @@ def write_cover_binder(
             group_pdf_paths.reverse()
         pdf_paths.extend(group_pdf_paths)
 
-    size_folder = str(binder_groups[0]["book_size"] or "").strip().upper() or "UNSPECIFIED"
+    size_folder = normalize_book_size_label(binder_groups[0]["book_size"])
     output_path = resolve_binders_root(batch_id) / size_folder / make_cover_filename(binder_number, binder_groups)
     merge_cover_binder_pdfs(pdf_paths, output_path, binder_number)
 
@@ -986,7 +1023,7 @@ def get_inner_binder_limit(binder_number: int) -> int:
 
 
 def make_inner_binder_filename(batch_id: int, binder_number: int, binder_rows: list[sqlite3.Row]) -> str:
-    book_size = str(binder_rows[0]["book_size"] or "").strip().upper() if binder_rows else ""
+    book_size = normalize_book_size_label(binder_rows[0]["book_size"]) if binder_rows else ""
     spine_codes = [str(row["spine_code"] or "").strip() for row in binder_rows if str(row["spine_code"] or "").strip()]
     unique_spines: list[str] = []
     for spine_code in spine_codes:
@@ -1011,7 +1048,7 @@ def write_inner_binder(
     pdf_paths = [resolve_inner_output(batch_id, row["book_id"]) for row in binder_rows]
     if reverse_within_binder:
         pdf_paths.reverse()
-    size_folder = str(binder_rows[0]["book_size"] or "").strip().upper() or "UNSPECIFIED"
+    size_folder = normalize_book_size_label(binder_rows[0]["book_size"])
     output_path = resolve_inner_binders_root(batch_id) / size_folder / make_inner_binder_filename(
         batch_id,
         binder_number,
@@ -1060,8 +1097,8 @@ def process_inner_binders(registry_path: str, batch_id: int, book_rows: list[sql
             continue
 
         same_book_size = (
-            str(binder_rows[0]["book_size"] or "").strip().upper()
-            == str(row["book_size"] or "").strip().upper()
+            normalize_book_size_label(binder_rows[0]["book_size"])
+            == normalize_book_size_label(row["book_size"])
         )
         if same_book_size and binder_pages + row_pages <= limit:
             binder_rows.append(row)
@@ -1098,7 +1135,13 @@ def process_inner_binders(registry_path: str, batch_id: int, book_rows: list[sql
     return binder_count
 
 
-def process_cover_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[sqlite3.Row]) -> int:
+def process_cover_rows(
+    conn: sqlite3.Connection,
+    batch_id: int,
+    book_rows: list[sqlite3.Row],
+    *,
+    include_ms_label: bool = False,
+) -> int:
     tasks: list[sqlite3.Row] = []
     for row in book_rows:
         if bool(row["cover_generated"]) or should_skip_code(row["covercode"]):
@@ -1130,6 +1173,7 @@ def process_cover_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[
             batch_id=batch_id,
             cover_book_id_color=cover_book_id_color,
             school_name=str(row["school_name"] or ""),
+            include_ms_label=include_ms_label,
         )
         return int(row["id"])
 
@@ -1146,6 +1190,10 @@ def process_cover_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[
             generated += 1
 
     return generated
+
+
+def is_missing_batch_name(value: str | None) -> bool:
+    return str(value or "").strip().startswith(MISSING_BATCH_PREFIX)
 
 
 def process_inner_rows(conn: sqlite3.Connection, batch_id: int, book_rows: list[sqlite3.Row]) -> int:
@@ -1307,6 +1355,7 @@ def main() -> int:
         return 1
 
     batch_name = batch_row["batch_name"] or args.batch_name
+    include_ms_label = is_missing_batch_name(batch_name)
     batch_db_path = batch_row["db_path"]
     cover_binder_generated_flag = int(batch_row["cover_binder_generated"] or 0)
     inner_binder_generated_flag = int(batch_row["inner_binder_generated"] or 0)
@@ -1327,7 +1376,12 @@ def main() -> int:
             return 1
 
         shared_inner_groups = collect_shared_inner_groups(book_rows)
-        cover_generated_count = process_cover_rows(batch_conn, args.batch_id, book_rows)
+        cover_generated_count = process_cover_rows(
+            batch_conn,
+            args.batch_id,
+            book_rows,
+            include_ms_label=include_ms_label,
+        )
         if cover_binder_generated_flag == 1:
             cover_binder_count = 0
         else:

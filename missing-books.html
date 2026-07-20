@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WINAPP Missing Books</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-logo" src="assets/logo.png" alt="WINAPP logo" />
+          <div>
+            <p class="brand-title">WINAPP</p>
+            <p class="brand-subtitle">Missing Books dashboard</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost-button" id="refresh-missing-books-page">Refresh</button>
+          <div class="status-pill" id="missing-books-refresh">UI ready</div>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="hero">
+          <h1>Missing Books</h1>
+          <p>Use school-level export in one tab and build Missing batches with multi-school search in the other.</p>
+        </section>
+
+        <section class="tabs" aria-label="Missing books views">
+          <button class="tab-button active" type="button" data-tab-target="school-data-tab">School Data</button>
+          <button class="tab-button" type="button" data-tab-target="missing-batches-tab">Missing Batches</button>
+          <button class="tab-button" type="button" data-tab-target="nonp-books-tab">Nonp Books</button>
+        </section>
+
+        <p class="status-text" id="missing-books-status"></p>
+
+        <section class="tab-panel" id="school-data-tab">
+          <section class="panel-grid">
+            <article class="panel-card">
+              <div class="panel-header">
+                <h2>Search School</h2>
+                <span class="panel-meta">Search by school ID</span>
+              </div>
+              <form class="form-row" id="missing-books-search-form">
+                <input
+                  class="text-input"
+                  type="text"
+                  id="missing-books-school-id"
+                  name="missing-books-school-id"
+                  placeholder="School ID"
+                  autocomplete="off"
+                  required
+                />
+                <button class="primary-button" type="submit">Load School</button>
+              </form>
+              <div class="form-row">
+                <input
+                  class="text-input"
+                  type="text"
+                  id="missing-books-student-filter"
+                  name="missing-books-student-filter"
+                  placeholder="Filter student name"
+                  autocomplete="off"
+                  disabled
+                />
+                <input
+                  class="text-input"
+                  type="text"
+                  id="missing-books-subject-filter"
+                  name="missing-books-subject-filter"
+                  placeholder="Filter subject name"
+                  autocomplete="off"
+                  disabled
+                />
+              </div>
+              <p class="helper-text" id="missing-books-filter-helper">
+                Load a school first to enable student and subject filters.
+              </p>
+            </article>
+
+            <article class="panel-card">
+              <div class="panel-header">
+                <h2>School Summary</h2>
+                <span class="panel-meta" id="missing-books-count">0 rows</span>
+              </div>
+              <p class="helper-text" id="missing-books-school-summary">No school selected.</p>
+              <p class="helper-text" id="missing-books-batch-count">0 source batches</p>
+              <div class="form-row">
+                <button class="ghost-button" type="button" id="download-missing-books-csv" disabled>
+                  Download CSV
+                </button>
+                <button class="ghost-button" type="button" id="download-missing-books-json" disabled>
+                  Download JSON
+                </button>
+              </div>
+            </article>
+          </section>
+
+          <section class="table-card">
+            <div class="table-header">
+              <div class="table-title-group">
+                <h2>School Data Results</h2>
+              </div>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>School ID</th>
+                    <th>School Name</th>
+                    <th>Batch ID</th>
+                    <th>Batch Name</th>
+                    <th>Student Name</th>
+                    <th>Class</th>
+                    <th>Subject Name</th>
+                  </tr>
+                </thead>
+                <tbody id="missing-books-body">
+                  <tr>
+                    <td colspan="7">
+                      <div class="empty-state">Enter a school ID to load source BookDetails rows.</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="tab-panel hidden" id="missing-batches-tab">
+          <section class="panel-grid">
+            <article class="panel-card">
+              <div class="panel-header">
+                <h2>Selected Batch</h2>
+                <span class="panel-meta" id="missing-batch-selected-summary">No batch selected</span>
+              </div>
+              <div class="summary-strip">
+                <div class="summary-pill" id="missing-batch-schools-count">0 schools</div>
+                <div class="summary-pill" id="missing-batch-results-count">0 loaded rows</div>
+                <div class="summary-pill" id="missing-batch-source-count">0 source batches</div>
+              </div>
+            </article>
+          </section>
+
+          <section class="panel-grid">
+            <article class="panel-card">
+              <div class="panel-header">
+                <h2>Create Missing Batch</h2>
+                <span class="panel-meta">DB file name will start with Missing_</span>
+              </div>
+              <form class="form-row" id="create-missing-batch-form">
+                <input
+                  class="text-input"
+                  type="text"
+                  id="missing-batch-name"
+                  name="missing-batch-name"
+                  placeholder="Batch name"
+                  autocomplete="off"
+                  required
+                />
+                <button class="primary-button" type="submit">Create Batch</button>
+              </form>
+              <div class="form-row">
+                <select class="text-input" id="missing-batch-select">
+                  <option value="">Select Missing Batch</option>
+                </select>
+              </div>
+              <div class="panel-header">
+                <h2>Add Schools</h2>
+                <span class="panel-meta">Comma, space, or line separated IDs</span>
+              </div>
+              <form id="missing-batch-schools-form">
+                <div class="stack-input">
+                  <textarea
+                    class="text-input text-area-input"
+                    id="missing-batch-school-ids"
+                    name="missing-batch-school-ids"
+                    placeholder="10123, 10124 or one school per line"
+                    disabled
+                  ></textarea>
+                  <button class="primary-button" type="submit" id="missing-batch-add-schools" disabled>Add Schools</button>
+                </div>
+              </form>
+              <p class="helper-text" id="missing-batch-school-helper">
+                Select a Missing batch to start attaching schools.
+              </p>
+              <p class="helper-text" id="missing-batch-helper">
+                Create or select a Missing batch first. Then add schools and search student or subject across them.
+              </p>
+            </article>
+
+            <article class="panel-card">
+              <div class="panel-header">
+                <h2>Search Added Schools</h2>
+                <span class="panel-meta">Student, class, and subject across the selected batch</span>
+              </div>
+              <form class="form-row" id="missing-batch-search-form">
+                <select
+                  class="text-input"
+                  id="missing-batch-school-filter"
+                  name="missing-batch-school-filter"
+                  multiple
+                  size="4"
+                  disabled
+                ></select>
+                <p class="helper-text" id="missing-batch-school-filter-summary">
+                  Selected schools will appear here with batch IDs.
+                </p>
+                <input
+                  class="text-input"
+                  type="text"
+                  id="missing-batch-student-filter"
+                  name="missing-batch-student-filter"
+                  placeholder="Student name"
+                  autocomplete="off"
+                  disabled
+                />
+                <input
+                  class="text-input"
+                  type="text"
+                  id="missing-batch-class-filter"
+                  name="missing-batch-class-filter"
+                  placeholder="Class name"
+                  autocomplete="off"
+                  disabled
+                />
+                <input
+                  class="text-input"
+                  type="text"
+                  id="missing-batch-subject-filter"
+                  name="missing-batch-subject-filter"
+                  placeholder="Subject name"
+                  autocomplete="off"
+                  disabled
+                />
+                <button class="primary-button" type="submit" id="missing-batch-search-button" disabled>Search</button>
+              </form>
+              <div class="form-row">
+                <button class="ghost-button" type="button" id="add-selected-to-missing-batch" disabled>
+                  Add Selected Results
+                </button>
+                <button class="ghost-button" type="button" id="add-loaded-to-missing-batch" disabled>
+                  Add All Loaded Results
+                </button>
+                <button class="ghost-button" type="button" id="add-subject-to-missing-batch" disabled>
+                  Add Subject
+                </button>
+              </div>
+              <p class="helper-text" id="missing-batch-search-helper">
+                Add schools to the selected batch, then search class, subject, or student to load matching rows.
+              </p>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>
+                        <input type="checkbox" id="select-all-missing-batch-results" aria-label="Select all loaded rows" />
+                      </th>
+                      <th>School ID</th>
+                      <th>School Name</th>
+                      <th>Batch ID</th>
+                      <th>Batch Name</th>
+                      <th>Student Name</th>
+                      <th>Class</th>
+                      <th>Subject Name</th>
+                    </tr>
+                  </thead>
+                  <tbody id="missing-batch-results-body">
+                    <tr>
+                      <td colspan="8">
+                        <div class="empty-state">Select a Missing batch, add schools, then search by student, class, or subject.</div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
+          <section class="table-card">
+            <div class="table-header">
+              <div class="table-title-group">
+                <h2>Missing Batches</h2>
+                <span class="table-count" id="missing-batches-count">0</span>
+              </div>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Batch ID</th>
+                    <th>Batch Name</th>
+                    <th>Created</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="missing-batches-body">
+                  <tr>
+                    <td colspan="5">
+                      <div class="empty-state">No Missing batches created yet.</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="tab-panel hidden" id="nonp-books-tab">
+          <section class="panel-grid">
+            <article class="panel-card">
+              <div class="panel-header">
+                <h2>Nonp Books</h2>
+                <span class="panel-meta" id="nonp-books-selected-summary">No batch selected</span>
+              </div>
+              <p class="helper-text" id="nonp-books-helper">
+                Select a Missing batch, then add nonp books by subject name, cover code, inner code, and count.
+              </p>
+              <div class="form-row">
+                <select class="text-input" id="nonp-missing-batch-select">
+                  <option value="">Select Missing Batch</option>
+                </select>
+                <button class="primary-button" type="button" id="open-add-nonp-books-modal" disabled>
+                  Add Books
+                </button>
+                <button class="ghost-button" type="button" id="open-add-all-nonp-subjects-modal" disabled>
+                  Add All Subjects
+                </button>
+              </div>
+              <p class="helper-text">
+                Color 1 and Color 2 will default to <strong>1</strong> and <strong>2</strong>.
+              </p>
+            </article>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="missing-books.js"></script>
+  </body>
+</html>
